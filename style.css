@@ -1,0 +1,62 @@
+body {
+    margin: 0;
+    background: #000;
+    color: #fff;
+    overflow: hidden;
+}
+
+/* intro animation */
+#scene {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1000;
+    cursor: pointer;
+}
+
+/* main page */
+#home {
+    position: fixed;
+    inset: 0;
+    box-sizing: border-box;
+    padding-top: 80px; /* room for topbar */
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    transition: opacity 600ms ease;
+}
+#home.shown {
+    opacity: 1;
+}
+
+/* circle that categories sit on */
+.ring {
+    --radius: min(28vw, 30vh);
+    position: relative;
+    width: calc(var(--radius) * 2);
+    height: calc(var(--radius) * 2);
+}
+.ring::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 50%;
+}
+
+/* evenly spaced around the ring, starting at the top */
+.category {
+    --angle: calc(-90deg + var(--i) * 360deg / var(--count));
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: rotate(var(--angle)) translateX(var(--radius)) rotate(calc(-1 * var(--angle))) translate(-50%, -50%);
+    padding: 0.9em 1.6em;
+    background: #000; /* hides the ring behind the box */
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    font: 200 clamp(14px, 1.6vw, 22px) Palatino, serif;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    cursor: pointer;
+}

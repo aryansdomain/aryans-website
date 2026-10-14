@@ -1,5 +1,7 @@
 // ------------------------ SETTINGS ------------------------
 
+const SEEN_INTRO_KEY = "seenIntro";
+
 // POINTS
 const POINTS_PER_PIXEL = 0.0012665; // pts/px   points per pixel (2500 on a 1990x992 window)
 const POINT_RADIUS = 1;             // px
@@ -36,6 +38,11 @@ const DRIFT_REACH = 0.2;       // text-widths   how far each drifting curve can 
 
 // 4. FORM
 const FORM_TIME = 2000; // ms   how long points take to travel to the text
+
+// 5. TOPBAR
+const TOPBAR_TIME = 900;        // ms      how long the text takes to move up into the topbar
+const TOPBAR_TEXT_WIDTH = 0.12; // ratio   how much of the width of the screen the text fills in the topbar
+const TOPBAR_Y = 40;            // px      how far the middle of the text is from the top of the screen
 
 // CAMERA
 const FOV = 0.3;      // deg   up-and-down view angle
@@ -220,6 +227,12 @@ function resize() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     updateCameraLens();
+
+    // redraw here
+    if (capture !== null) {
+        ctx.clearRect(0, 0, width, height);
+        drawCapture(performance.now());
+    }
 }
 
 // set point positions
@@ -241,38 +254,38 @@ for (let i = 0; i < pointCount; i++) {
     });
 }
 
-// draw points
-function drawPoints() {
+// draw points onto target
+function drawPoints(target) {
     // glow
     if (POINT_GLOW_SIZE > 0 && POINT_GLOW_STRENGTH > 0) {
         const screenSize = Math.sqrt(width * height);
-        ctx.globalCompositeOperation = "lighter";
-        ctx.globalAlpha = POINT_GLOW_STRENGTH;
+        target.globalCompositeOperation = "lighter";
+        target.globalAlpha = POINT_GLOW_STRENGTH;
         for (const point of points) {
             if (!point.visible) continue;
 
             // scale with window size
             const depthScale = clamp(0.3, 4, camera.homeDistance / point.depth)
             const size = POINT_GLOW_SIZE * screenSize * depthScale;
-            ctx.drawImage(glowSprite, point.x - size, point.y - size, size * 2, size * 2);
+            target.drawImage(glowSprite, point.x - size, point.y - size, size * 2, size * 2);
         }
-        ctx.globalCompositeOperation = "source-over";
+        target.globalCompositeOperation = "source-over";
     }
 
     // draw the points
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = POINT_COLOR;
-    ctx.beginPath();
+    target.globalAlpha = 1;
+    target.fillStyle = POINT_COLOR;
+    target.beginPath();
     for (const point of points) {
         if (!point.visible) continue;
 
         // scale with windo
         const depthScale = clamp(0.3, 4, camera.homeDistance / point.depth)
         const radius = POINT_RADIUS * depthScale;
-        ctx.moveTo(point.x + radius, point.y);
-        ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+        target.moveTo(point.x + radius, point.y);
+        target.arc(point.x, point.y, radius, 0, Math.PI * 2);
     }
-    ctx.fill();
+    target.fill();
 }
 
 // update points
@@ -397,6 +410,108 @@ function placePointsOnPercent() {
         ordered[i].startY = starts[i].y;
         ordered[i].slowness = MIN_SLOWNESS + Math.random() * SLOWNESS_SPREAD; // so they don't all land together
     }
+}
+
+// time after all animations have finished
+let settleTime = Infinity;
+function findSettleTime() {
+    let landed = 0;
+    for (const point of points) {
+        landed = Math.max(landed, (BURST_TIME + FORM_TIME) * point.slowness + DRIFT_TIME);
+    }
+    settleTime = Math.max(CAMERA_PATH[CAMERA_PATH.length - 1].time, landed + TRAIL_DURATION);
+}
+
+// copy what the points look like now into an image, so they can be moved as once
+let capture = null;
+function capturePoints() {
+    const dpr = window.devicePixelRatio || 1;
+    const pad = Math.max(POINT_GLOW_SIZE * Math.sqrt(width * height), POINT_RADIUS) + 2;
+
+    // find the box the points fill
+    let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+    for (const point of points) {
+        if (!point.visible) continue;
+        left   = Math.min(left,   point.x);
+        right  = Math.max(right,  point.x);
+        top    = Math.min(top,    point.y);
+        bottom = Math.max(bottom, point.y);
+    }
+
+    // line up with pixels
+    left   = Math.floor((left   - pad) * dpr) / dpr;
+    top    = Math.floor((top    - pad) * dpr) / dpr;
+    right  = Math.ceil ((right  + pad) * dpr) / dpr;
+    bottom = Math.ceil ((bottom + pad) * dpr) / dpr;
+
+    // draw the points onto a see-through canvas the size of the box
+    const image = document.createElement("canvas");
+    image.width  = Math.round((right  - left) * dpr);
+    image.height = Math.round((bottom - top ) * dpr);
+    const imageCtx = image.getContext("2d");
+    imageCtx.setTransform(dpr, 0, 0, dpr, -left * dpr, -top * dpr);
+    drawPoints(imageCtx);
+
+    // box relative to the middle of the text, in text-widths
+    const textWidth = width * TEXT_SCREEN_WIDTH;
+    capture = {
+        image,
+        left:   (left - width  / 2) / textWidth,
+        top:    (top  - height / 2) / textWidth,
+        width:  (right  - left) / textWidth,
+        height: (bottom - top ) / textWidth
+    };
+
+    // kill points
+    points.length = 0;
+}
+
+// draw captured text, moving it into the topbar once topbarStart is set
+let topbarStart = null; // time the move to the topbar started
+function drawCapture(now) {
+    const t = topbarStart === null ? 0 : clamp(0, 1, (now - topbarStart) / TOPBAR_TIME);
+    const eased = t < 0.5 ? 4*t*t*t : 1 - Math.pow(2 - 2*t, 3) / 2; // ease in and out
+
+    const textWidth = width * (TEXT_SCREEN_WIDTH + (TOPBAR_TEXT_WIDTH - TEXT_SCREEN_WIDTH) * eased);
+    const middleY = height / 2 + (TOPBAR_Y - height / 2) * eased;
+
+    // draw
+    ctx.globalAlpha = 1;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(
+        capture.image,
+        width / 2 + capture.left * textWidth,
+        middleY   + capture.top  * textWidth,
+        capture.width  * textWidth,
+        capture.height * textWidth
+    );
+}
+
+// start moving the captured text into the topbar
+function moveToTopbar() {
+    if (capture === null || topbarStart !== null) return;
+    topbarStart = performance.now();
+    canvas.style.cursor = "auto";
+    canvas.style.pointerEvents = "none"; // let main page underneath be hovered and clicked
+    requestAnimationFrame(frame);
+
+    // intro seen, skip it next time
+    try { localStorage.setItem(SEEN_INTRO_KEY, "true"); } catch (error) {}
+}
+
+// go directly to text in topbar, for intro already seen
+function skipIntro() {
+    // points where they land, seen from where the camera stops
+    updateCamera(settleTime);
+    updatePoints(settleTime);
+    capturePoints();
+
+    topbarStart = -Infinity; // already in the topbar
+    canvas.style.cursor = "auto";
+    canvas.style.pointerEvents = "none";
+    ctx.clearRect(0, 0, width, height);
+    drawCapture(performance.now());
+    document.getElementById("home").classList.add("shown");
 }
 
 // draw the loading percentage
@@ -585,6 +700,7 @@ const loadTasks = [
     Promise.all(fontTasks).then(function () {
         placePointsOnPercent();
         placePointsOnText();
+        findSettleTime();
     })
 ];
 
@@ -619,15 +735,32 @@ function frame(now) {
         fullAt = now;
     }
 
-    // background color
+    // background color, see-through once captured
     ctx.globalAlpha = 1;
-    ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, width, height);
+    if (capture === null) {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, width, height);
+    } else {
+        ctx.clearRect(0, 0, width, height);
+    }
 
     // before or after burst
     const burstTime = fullAt === null ? -1 : now - fullAt - HOLD_TIME - SHRINK_TIME;
-    if (burstTime < 0) drawLoading(fullAt === null ? null : now - fullAt);
-    else               drawParticles(burstTime);
+    if      (burstTime < 0)    drawLoading(fullAt === null ? null : now - fullAt);
+    else if (capture === null) drawParticles(burstTime);
+    else                       drawCapture(now);
+
+    // swap points for capture
+    if (capture === null && burstTime > settleTime) capturePoints();
+
+    // once captured, only redraw when moving to topbar
+    if (capture !== null && topbarStart === null) return;
+
+    // text is in topbar, so show the main page
+    if (capture !== null && now - topbarStart >= TOPBAR_TIME) {
+        document.getElementById("home").classList.add("shown");
+        return;
+    }
 
     requestAnimationFrame(frame);
 }
@@ -659,9 +792,30 @@ function drawParticles(burstTime) {
     updatePoints(burstTime);
     updateTrails(burstTime);
     drawTrails(burstTime);
-    drawPoints();
+    drawPoints(ctx);
 }
+
+// click or scroll down anywhere moves text into topbar
+window.addEventListener("click", moveToTopbar);
+window.addEventListener("wheel", function (event) {
+    if (event.deltaY > 0) moveToTopbar();
+});
+window.addEventListener("keydown", function (event) {
+    if (event.key === "ArrowDown" || event.key === "PageDown" || event.key === " ") moveToTopbar();
+});
+let touchStartY = null;
+window.addEventListener("touchstart", function (event) {
+    touchStartY = event.touches[0].clientY;
+});
+window.addEventListener("touchmove", function (event) {
+    if (touchStartY !== null && touchStartY - event.touches[0].clientY > 10) moveToTopbar(); // swipe up
+});
 
 window.addEventListener("resize", resize);
 resize();
-requestAnimationFrame(frame);
+
+// only show intro to those who haven't seen it
+let seenIntro = false;
+try { seenIntro = localStorage.getItem(SEEN_INTRO_KEY) === "true"; } catch (error) {}
+if (seenIntro) Promise.all(loadTasks).then(skipIntro);
+else requestAnimationFrame(frame);

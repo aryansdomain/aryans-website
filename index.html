@@ -3,23 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aryan's Website</title>
-    <link rel="stylesheet" href="assets/css/style.css">
-    <script src="assets/js/script.js"></script>
-    <style>
-        #scene {
-            position: fixed;
-            inset: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 1000;
-            cursor: pointer;
-        }
-    </style>
+    <title>Aryan Singhal</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js"></script>
 </head>
 <body>
     <!-- intro animation -->
     <canvas id="scene" data-skippable></canvas>
+
+    <!-- main page -->
+    <main id="home">
+        <div class="ring" style="--count: 3">
+            <div class="category" style="--i: 0">Blog</div>
+            <div class="category" style="--i: 1">Writing</div>
+            <div class="category" style="--i: 2">Research</div>
+        </div>
+    </main>
 
     <script src="intro.js"></script>
 </body>
