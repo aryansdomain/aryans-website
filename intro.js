@@ -1,6 +1,6 @@
 // ------------------------ SETTINGS ------------------------
 
-const SEEN_INTRO_KEY = "seenIntro";
+const SEEN_INTRO_KEY = "intro_seen";
 
 // POINTS
 const POINTS_PER_PIXEL = 0.0012665; // pts/px   points per pixel (2500 on a 1990x992 window)
@@ -40,9 +40,13 @@ const DRIFT_REACH = 0.2;       // text-widths   how far each drifting curve can 
 const FORM_TIME = 2000; // ms   how long points take to travel to the text
 
 // 5. TOPBAR
-const TOPBAR_TIME = 900;        // ms      how long the text takes to move up into the topbar
-const TOPBAR_TEXT_WIDTH = 0.12; // ratio   how much of the width of the screen the text fills in the topbar
-const TOPBAR_Y = 40;            // px      how far the middle of the text is from the top of the screen
+const TOPBAR_TIME = 900;           // ms      how long the text takes to move up into the topbar
+const TOPBAR_TEXT_WIDTH = 0.12;    // ratio   how much of the width of the screen the text fills in the topbar
+const TOPBAR_Y = 40;               // px      how far the middle of the text is from the top of the screen
+const MODE_FADE_TIME = 300;        // ms      how long the text takes to change color with light/dark mode
+                                        // (LINK TO --mode-fade-time in style.css)
+const TOPBAR_POINTS_PER_PIXEL = 5; // pts/px  points per pixel of topbar letters
+const TOPBAR_POINT_RADIUS = 0.25;  // px      size of points in the topbar text
 
 // CAMERA
 const FOV = 0.3;      // deg   up-and-down view angle
@@ -230,6 +234,8 @@ function resize() {
 
     // redraw here
     if (capture !== null) {
+        drawTopbarImage();
+        recolorCapture(false);
         ctx.clearRect(0, 0, width, height);
         drawCapture(performance.now());
     }
@@ -352,6 +358,19 @@ function updatePoints(burstTime) {
     }
 }
 
+// pixels the letters of the text cover
+let letterPixels = [];
+let letterPixelSize = 0; // width of one pixel in text-widths
+
+// a random spot inside the letters
+function randomInLetters() {
+    const pixel = letterPixels[Math.floor(Math.random() * letterPixels.length)];
+    return {
+        x: pixel.x + Math.random() * letterPixelSize,
+        y: pixel.y + Math.random() * letterPixelSize
+    };
+}
+
 // assign to the points a destination inside the letters of the text
 function placePointsOnText() {
     const covered = findTextPixels(TEXT, TEXT_FONT_FAMILY);
@@ -368,15 +387,15 @@ function placePointsOnText() {
     const middleY = (top + bottom) / 2;
     const textWidth = (right - left) || 1;
 
+    // keep letters' pixels
+    letterPixelSize = 1 / textWidth;
+    letterPixels = covered.map(function (pixel) {
+        return { x: (pixel.x - middleX) / textWidth, y: (pixel.y - middleY) / textWidth };
+    });
+
     // pick a pixel for each point
     const targets = [];
-    for (let i = 0; i < points.length; i++) {
-        const pixel = covered[Math.floor(Math.random() * covered.length)];
-        targets.push({
-            x: (pixel.x + Math.random() - middleX) / textWidth,
-            y: (pixel.y + Math.random() - middleY) / textWidth
-        });
-    }
+    for (let i = 0; i < points.length; i++) targets.push(randomInLetters());
 
     // ensure the points' destinations are near to where they burst
     targets.sort(function (a, b) { return a.x - b.x; }); // horizontally
@@ -455,15 +474,50 @@ function capturePoints() {
     // box relative to the middle of the text, in text-widths
     const textWidth = width * TEXT_SCREEN_WIDTH;
     capture = {
-        image,
+        image,                                                                    // the points as they were, full size
+        small: null,                                                              // the points drawn at topbar size
+        fadeFrom: null,                                                           // colored images fading out
+        fadeTo: null,                                                             // colored images fading in
+        fadeStart: -Infinity,                                                     // time the color fade started
         left:   (left - width  / 2) / textWidth,
         top:    (top  - height / 2) / textWidth,
         width:  (right  - left) / textWidth,
         height: (bottom - top ) / textWidth
     };
+    drawTopbarImage();
+    capture.fadeTo = capture.fadeFrom = { image: capture.image, small: capture.small };
 
     // kill points
     points.length = 0;
+}
+
+// draw the points at topbar size so text is sharp
+function drawTopbarImage() {
+    const dpr = window.devicePixelRatio || 1;
+    const textWidth = width * TOPBAR_TEXT_WIDTH;
+
+    const small = document.createElement("canvas");
+    small.width  = Math.max(1, Math.round(capture.width  * textWidth * dpr));
+    small.height = Math.max(1, Math.round(capture.height * textWidth * dpr));
+    const smallCtx = small.getContext("2d");
+    smallCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // enough points to fill all letters at this size
+    const letterPixelsHere = letterPixels.length * Math.pow(letterPixelSize * textWidth, 2);
+    const count = Math.round(TOPBAR_POINTS_PER_PIXEL * letterPixelsHere);
+
+    smallCtx.fillStyle = POINT_COLOR;
+    smallCtx.beginPath();
+    for (let i = 0; i < count; i++) {
+        const target = randomInLetters();
+        const x = (target.x - capture.left) * textWidth;
+        const y = (target.y - capture.top ) * textWidth;
+        smallCtx.moveTo(x + TOPBAR_POINT_RADIUS, y);
+        smallCtx.arc(x, y, TOPBAR_POINT_RADIUS, 0, Math.PI * 2);
+    }
+    smallCtx.fill();
+
+    capture.small = small;
 }
 
 // draw captured text, moving it into the topbar once topbarStart is set
@@ -475,16 +529,67 @@ function drawCapture(now) {
     const textWidth = width * (TEXT_SCREEN_WIDTH + (TOPBAR_TEXT_WIDTH - TEXT_SCREEN_WIDTH) * eased);
     const middleY = height / 2 + (TOPBAR_Y - height / 2) * eased;
 
-    // draw
-    ctx.globalAlpha = 1;
+    // box location
+    const x = width / 2 + capture.left * textWidth;
+    const y = middleY   + capture.top  * textWidth;
+    const w = capture.width  * textWidth;
+    const h = capture.height * textWidth;
+
+    // ease into smaller points
+    const sharp = eased * eased * eased;
+
+    // draw, fading between colors
+    const fade = clamp(0, 1, (now - capture.fadeStart) / MODE_FADE_TIME);
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(
-        capture.image,
-        width / 2 + capture.left * textWidth,
-        middleY   + capture.top  * textWidth,
-        capture.width  * textWidth,
-        capture.height * textWidth
-    );
+    for (const [images, alpha] of [[capture.fadeFrom, 1 - fade], [capture.fadeTo, fade]]) {
+        if (alpha <= 0) continue;
+
+        if (sharp < 1) {
+            ctx.globalAlpha = alpha * (1 - sharp);
+            ctx.drawImage(images.image, x, y, w, h);
+        }
+        if (sharp > 0) {
+            ctx.globalAlpha = alpha * sharp;
+            if (sharp === 1) {
+                // in place, so line up with pixels and don't stretch, to keep it sharp
+                const dpr = window.devicePixelRatio || 1;
+                ctx.drawImage(images.small, Math.round(x * dpr) / dpr, Math.round(y * dpr) / dpr, images.small.width / dpr, images.small.height / dpr);
+            } else {
+                ctx.drawImage(images.small, x, y, w, h);
+            }
+        }
+    }
+    ctx.globalAlpha = 1;
+}
+
+// copy of image in color, same shape and glow
+function colorImage(image, color) {
+    const colored = document.createElement("canvas");
+    colored.width  = image.width;
+    colored.height = image.height;
+    const coloredCtx = colored.getContext("2d");
+    coloredCtx.drawImage(image, 0, 0);
+    coloredCtx.globalCompositeOperation = "source-in";
+    coloredCtx.fillStyle = color;
+    coloredCtx.fillRect(0, 0, colored.width, colored.height);
+    return colored;
+}
+
+// recolor captured text to page's text color, fading or at once
+function recolorCapture(fade) {
+    const color = getComputedStyle(document.documentElement).getPropertyValue("--text").trim();
+
+    capture.fadeFrom  = capture.fadeTo;
+    capture.fadeTo    = { image: colorImage(capture.image, color), small: colorImage(capture.small, color) };
+    capture.fadeStart = fade ? performance.now() : -Infinity;
+}
+
+// run frame, unless it's already running
+let looping = false;
+function startLoop() {
+    if (looping) return;
+    looping = true;
+    requestAnimationFrame(frame);
 }
 
 // start moving the captured text into the topbar
@@ -493,11 +598,18 @@ function moveToTopbar() {
     topbarStart = performance.now();
     canvas.style.cursor = "auto";
     canvas.style.pointerEvents = "none"; // let main page underneath be hovered and clicked
-    requestAnimationFrame(frame);
+    startLoop();
 
     // intro seen, skip it next time
     try { localStorage.setItem(SEEN_INTRO_KEY, "true"); } catch (error) {}
 }
+
+// recolor text when mode changes
+window.addEventListener("modechange", function () {
+    if (capture === null || topbarStart === null) return;
+    recolorCapture(true);
+    startLoop();
+});
 
 // go directly to text in topbar, for intro already seen
 function skipIntro() {
@@ -505,13 +617,14 @@ function skipIntro() {
     updateCamera(settleTime);
     updatePoints(settleTime);
     capturePoints();
+    recolorCapture(false);
 
     topbarStart = -Infinity; // already in the topbar
     canvas.style.cursor = "auto";
     canvas.style.pointerEvents = "none";
     ctx.clearRect(0, 0, width, height);
     drawCapture(performance.now());
-    document.getElementById("home").classList.add("shown");
+    showHome();
 }
 
 // draw the loading percentage
@@ -746,20 +859,25 @@ function frame(now) {
 
     // before or after burst
     const burstTime = fullAt === null ? -1 : now - fullAt - HOLD_TIME - SHRINK_TIME;
-    if      (burstTime < 0)    drawLoading(fullAt === null ? null : now - fullAt);
-    else if (capture === null) drawParticles(burstTime);
-    else                       drawCapture(now);
+    if      (capture !== null) drawCapture(now); // first, since a skipped intro never loads or bursts
+    else if (burstTime < 0)    drawLoading(fullAt === null ? null : now - fullAt);
+    else                       drawParticles(burstTime);
 
     // swap points for capture
     if (capture === null && burstTime > settleTime) capturePoints();
 
-    // once captured, only redraw when moving to topbar
-    if (capture !== null && topbarStart === null) return;
+    if (capture !== null) {
+        const moving = topbarStart !== null && now - topbarStart < TOPBAR_TIME;
+        const fading = now - capture.fadeStart < MODE_FADE_TIME;
 
-    // text is in topbar, so show the main page
-    if (capture !== null && now - topbarStart >= TOPBAR_TIME) {
-        document.getElementById("home").classList.add("shown");
-        return;
+        // text is in topbar, so show the main page
+        if (topbarStart !== null && !moving) showHome();
+
+        // after captured, only redraw when moving to topbar or changing color
+        if (!moving && !fading) {
+            looping = false;
+            return;
+        }
     }
 
     requestAnimationFrame(frame);
@@ -818,4 +936,4 @@ resize();
 let seenIntro = false;
 try { seenIntro = localStorage.getItem(SEEN_INTRO_KEY) === "true"; } catch (error) {}
 if (seenIntro) Promise.all(loadTasks).then(skipIntro);
-else requestAnimationFrame(frame);
+else           startLoop();

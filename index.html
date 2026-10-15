@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aryan Singhal</title>
     <link rel="stylesheet" href="style.css">
+    <script src="mode.js"></script>
     <script src="script.js"></script>
 </head>
 <body>
@@ -13,13 +14,23 @@
 
     <!-- main page -->
     <main id="home">
-        <div class="ring" style="--count: 3">
-            <div class="category" style="--i: 0">Blog</div>
-            <div class="category" style="--i: 1">Writing</div>
-            <div class="category" style="--i: 2">Research</div>
+        <!-- mode toggle button -->
+        <button id="mode-switch" aria-label="Switch between light and dark mode">
+            <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
+                <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor"/>
+                <path d="M10 2 a8 8 0 0 0 0 16 z" fill="currentColor"/>
+            </svg>
+        </button>
+
+        <div class="ring">
+            <div class="category">Blog</div>
+            <div class="category">Writing</div>
+            <div class="category">Research</div>
+            <div class="category">Games</div>
         </div>
     </main>
 
+    <script src="home.js"></script>
     <script src="intro.js"></script>
 </body>
 </html>

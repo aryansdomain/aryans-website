@@ -1,8 +1,26 @@
+/* colors */
+:root {
+    --background: #000;
+    --text: #fff;
+    --ring: rgba(255, 255, 255, 0.35);
+    --cable: rgba(255, 255, 255, 0.5);
+    --box-border: rgba(255, 255, 255, 0.7);
+    --mode-fade: 300ms;
+}
+:root[data-mode="light"] {
+    --background: #f6f4ef;
+    --text: #111;
+    --ring: rgba(0, 0, 0, 0.3);
+    --cable: rgba(0, 0, 0, 0.45);
+    --box-border: rgba(0, 0, 0, 0.65);
+}
+
 body {
     margin: 0;
-    background: #000;
-    color: #fff;
+    background: var(--background);
+    color: var(--text);
     overflow: hidden;
+    transition: background-color var(--mode-fade) ease, color var(--mode-fade) ease;
 }
 
 /* intro animation */
@@ -30,33 +48,66 @@ body {
     opacity: 1;
 }
 
-/* circle that categories sit on */
+/* wheel the categories hang from */
 .ring {
-    --radius: min(28vw, 30vh);
+    --radius: min(24vw, 24vh);
     position: relative;
-    width: calc(var(--radius) * 2);
+    top: -5vh;
+    width:  calc(var(--radius) * 2);
     height: calc(var(--radius) * 2);
 }
 .ring::before {
     content: "";
     position: absolute;
     inset: 0;
-    border: 1px solid rgba(255, 255, 255, 0.35);
+    border: 1px solid var(--ring);
     border-radius: 50%;
+    transition: border-color var(--mode-fade) ease;
 }
 
-/* evenly spaced around the ring, starting at the top */
-.category {
-    --angle: calc(-90deg + var(--i) * 360deg / var(--count));
+/* line each box hangs from */
+.cable {
     position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: rotate(var(--angle)) translateX(var(--radius)) rotate(calc(-1 * var(--angle))) translate(-50%, -50%);
+    left: 0;
+    top: 0;
+    width: 1px;
+    background: var(--cable);
+    transform-origin: top center;
+    transition: background-color var(--mode-fade) ease;
+}
+
+/* moved by home.js, always upright */
+.category {
+    position: absolute;
+    left: 0;
+    top: 0;
     padding: 0.9em 1.6em;
-    background: #000; /* hides the ring behind the box */
-    border: 1px solid rgba(255, 255, 255, 0.7);
+    background: var(--background); /* hides the ring behind the box */
+    border: 1px solid var(--box-border);
     font: 200 clamp(14px, 1.6vw, 22px) Palatino, serif;
     letter-spacing: 0.05em;
     white-space: nowrap;
     cursor: pointer;
+    transition: background-color var(--mode-fade) ease, border-color var(--mode-fade) ease;
+}
+
+/* light/dark mode switch, top right */
+#mode-switch {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: none;
+    color: var(--text);
+    border: none;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 150ms ease, color var(--mode-fade) ease;
+}
+#mode-switch:hover {
+    opacity: 1;
 }
