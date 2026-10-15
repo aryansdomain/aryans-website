@@ -10,7 +10,7 @@
     --mode-fade: 300ms;
 }
 :root[data-mode="light"] {
-    --background: #f6f4ef;
+    --background: #ffffff;
     --text: #111;
     --wheel: rgba(0, 0, 0, 0.3);
     --cable: rgba(0, 0, 0, 0.45);
@@ -92,7 +92,11 @@ body {
     letter-spacing: 0.05em;
     white-space: nowrap;
     cursor: pointer;
-    transition: background-color var(--mode-fade) ease, border-color var(--mode-fade) ease;
+    transition: background-color var(--mode-fade) ease, border-color var(--mode-fade) ease, box-shadow var(--mode-fade) ease;
+}
+.category:hover {
+    border-color: var(--text);
+    box-shadow: 0 0 12px var(--glow);
 }
 
 /* mode toggle */
