@@ -4,5 +4,5 @@ const home = document.getElementById("home");
 function showHome() {
     if (home.classList.contains("shown")) return;
     home.classList.add("shown");
-    startWheel();
+    startRing();
 }

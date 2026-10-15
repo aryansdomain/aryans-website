@@ -42,12 +42,10 @@ const FORM_TIME = 2000; // ms   how long points take to travel to the text
 const TOPBAR_TIME = 900;           // ms      how long the text takes to move up into the topbar
 const TOPBAR_TEXT_WIDTH = 0.12;    // ratio   how much of the width of the screen the text fills in the topbar
 const TOPBAR_Y = 40;               // px      how far the middle of the text is from the top of the screen
-const MODE_FADE_TIME = 300;        // ms      how long the text takes to change color with light/dark mode
-                                        // (LINK TO --mode-fade-time in style.css)
 const TOPBAR_POINTS_PER_PIXEL = 7; // pts/px  points per pixel of topbar letters
 const TOPBAR_POINT_RADIUS = 0.25;  // px      size of points in the topbar text
 
-const HOVER_POINT_RADIUS = 0.4;    // px      size of points in the topbar text when hovered, bigger -> whiter
+const HOVER_POINT_RADIUS = 0.4;    // px      size of points in the topbar text when hovered, bigger -> bolder
 const HOVER_TIME = 200;            // ms      how long the hover animation takes
 
 // CAMERA
@@ -238,7 +236,7 @@ function resize() {
     // redraw here
     if (capture !== null) {
         drawTopbarImage();
-        recolorCapture(false);
+        colorCaptureForHome();
         ctx.clearRect(0, 0, width, height);
         drawCapture(performance.now());
         placeNameButton();
@@ -269,7 +267,7 @@ function drawPoints(target) {
     // glow
     if (POINT_GLOW_SIZE > 0 && POINT_GLOW_STRENGTH > 0) {
         const screenSize = Math.sqrt(width * height);
-        target.globalCompositeOperation = colors.glowBlend;
+        target.globalCompositeOperation = "lighter";
         target.globalAlpha = POINT_GLOW_STRENGTH;
         for (const point of points) {
             if (!point.visible) continue;
@@ -481,16 +479,14 @@ function capturePoints() {
         image,                                                                    // the points as they were, full size
         small: null,                                                              // the points drawn at topbar size
         hoverSmall: null,                                                         // the same points at hovered size
-        fadeFrom: null,                                                           // colored images fading out
-        fadeTo: null,                                                             // colored images fading in
-        fadeStart: -Infinity,                                                     // time the color fade started
-        left:   (left - width  / 2) / textWidth,
+        home: null,                                                               // all three in the main page's text color
+        left:  (left - width  / 2) / textWidth,
         top:    (top  - height / 2) / textWidth,
         width:  (right  - left) / textWidth,
         height: (bottom - top ) / textWidth
     };
     drawTopbarImage();
-    capture.fadeTo = capture.fadeFrom = { image: capture.image, small: capture.small, hoverSmall: capture.hoverSmall };
+    colorCaptureForHome();
 
     // kill points
     points.length = 0;
@@ -571,10 +567,9 @@ function drawCapture(now) {
     // ease into smaller points
     const sharp = eased * eased * eased;
 
-    // draw, fading between colors
-    const fade = clamp(0, 1, (now - capture.fadeStart) / MODE_FADE_TIME);
+    // draw, fade from intro color color to dark
     ctx.imageSmoothingQuality = "high";
-    for (const [images, alpha] of [[capture.fadeFrom, 1 - fade], [capture.fadeTo, fade]]) {
+    for (const [images, alpha] of [[capture, 1 - eased], [capture.home, eased]]) {
         if (alpha <= 0) continue;
 
         if (sharp < 1) {
@@ -582,7 +577,7 @@ function drawCapture(now) {
             ctx.drawImage(images.image, x, y, w, h);
         }
         if (sharp > 0) {
-            // fade from normal to hovered points, which are bigger so the text is whiter
+            // fade from normal to hovered points, which are bigger so the text is bolder
             const dpr = window.devicePixelRatio || 1;
             for (const [small, strength] of [[images.small, 1 - hover], [images.hoverSmall, hover]]) {
                 if (strength <= 0) continue;
@@ -613,17 +608,13 @@ function colorImage(image, color) {
     return colored;
 }
 
-// recolor captured text to page's text color, fading or at once
-function recolorCapture(fade) {
-    const color = getComputedStyle(document.documentElement).getPropertyValue("--text").trim();
-
-    capture.fadeFrom  = capture.fadeTo;
-    capture.fadeTo    = {
-        image:      colorImage(capture.image,      color),
-        small:      colorImage(capture.small,      color),
-        hoverSmall: colorImage(capture.hoverSmall, color)
+// copy captured text in the main page's text color
+function colorCaptureForHome() {
+    capture.home = {
+        image:      colorImage(capture.image,      colors.homeText),
+        small:      colorImage(capture.small,      colors.homeText),
+        hoverSmall: colorImage(capture.hoverSmall, colors.homeText)
     };
-    capture.fadeStart = fade ? performance.now() : -Infinity;
 }
 
 // run frame, unless it's already running
@@ -640,19 +631,12 @@ function moveToTopbar() {
     topbarStart = performance.now();
     canvas.style.cursor = "auto";
     canvas.style.pointerEvents = "none"; // let main page underneath be hovered and clicked
+    canvas.classList.add("done");        // fade out dark background
     startLoop();
 
     // intro seen, skip it next time
     try { localStorage.setItem(SEEN_INTRO_KEY, "true"); } catch (error) {}
 }
-
-// recolor when mode changes
-window.addEventListener("modechange", function () {
-    readColors();
-    if (capture === null || topbarStart === null) return;
-    recolorCapture(true);
-    startLoop();
-});
 
 // go directly to text in topbar, for intro already seen
 function skipIntro() {
@@ -660,7 +644,6 @@ function skipIntro() {
     updateCamera(settleTime);
     updatePoints(settleTime);
     capturePoints();
-    recolorCapture(false);
 
     topbarStart = -Infinity; // already in the topbar
     canvas.style.cursor = "auto";
@@ -770,7 +753,7 @@ function drawTrails(burstTime) {
     }
 
     // add a glow
-    ctx.globalCompositeOperation = colors.glowBlend;
+    ctx.globalCompositeOperation = "lighter";
     ctx.strokeStyle = colors.glow;
     for (let i = TRAIL_FADE_STEPS - TRAIL_GLOW_STEPS; i < TRAIL_FADE_STEPS; i++) {
         if (i < 0) continue;
@@ -831,17 +814,17 @@ function makeGlowSprite() {
     return sprite;
 }
 
-// the intro's colors, from style.css for the current mode
+// the intro's colors, from style.css
 let colors = null;
 let glowSprite = null;
 function readColors() {
     const style = getComputedStyle(document.documentElement);
     colors = {
-        background: style.getPropertyValue("--background").trim(),
-        text:       style.getPropertyValue("--text").trim(),
-        trail:      style.getPropertyValue("--trail").trim(),
-        glow:       style.getPropertyValue("--glow").trim(),
-        glowBlend: document.documentElement.dataset.mode === "light" ? "source-over" : "lighter"
+        background: style.getPropertyValue("--intro-background").trim(),
+        text:       style.getPropertyValue("--intro-text").trim(),
+        trail:      style.getPropertyValue("--intro-trail").trim(),
+        glow:       style.getPropertyValue("--intro-glow").trim(),
+        homeText:   style.getPropertyValue("--text").trim()
     };
     glowSprite = makeGlowSprite();
 }
@@ -927,7 +910,6 @@ function frame(now) {
 
     if (capture !== null) {
         const moving = topbarStart !== null && now - topbarStart < TOPBAR_TIME;
-        const fading = now - capture.fadeStart < MODE_FADE_TIME;
         const hovering = now - hoverStart < HOVER_TIME;
 
         // text is in topbar, so show the main page
@@ -936,8 +918,8 @@ function frame(now) {
             placeNameButton();
         }
 
-        // after captured, only redraw when moving to topbar or changing color
-        if (!moving && !fading && !hovering) {
+        // after captured, only redraw when moving to topbar or hovering
+        if (!moving && !hovering) {
             looping = false;
             return;
         }
@@ -1021,5 +1003,10 @@ resize();
 // only show intro to those who haven't seen it
 let seenIntro = false;
 try { seenIntro = localStorage.getItem(SEEN_INTRO_KEY) === "true"; } catch (error) {}
-if (seenIntro) Promise.all(loadTasks).then(skipIntro);
-else           startLoop();
+if (seenIntro) {
+    // no intro
+    canvas.style.transition = "none";
+    canvas.classList.add("done");
+    Promise.all(loadTasks).then(skipIntro);
+}
+else startLoop();
