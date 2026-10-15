@@ -3,9 +3,8 @@
 const SEEN_INTRO_KEY = "intro_seen";
 
 // POINTS
-const POINTS_PER_PIXEL = 0.0012665; // pts/px   points per pixel (2500 on a 1990x992 window)
-const POINT_RADIUS = 1;             // px
-const POINT_COLOR = "#fff";
+const POINTS_PER_PIXEL = 0.002; // pts/px   points per pixel (2500 on a 1990x992 window)
+const POINT_RADIUS = 1.8;        // px
 
 // TEXT
 const TEXT = "Aryan Singhal";
@@ -45,17 +44,20 @@ const TOPBAR_TEXT_WIDTH = 0.12;    // ratio   how much of the width of the scree
 const TOPBAR_Y = 40;               // px      how far the middle of the text is from the top of the screen
 const MODE_FADE_TIME = 300;        // ms      how long the text takes to change color with light/dark mode
                                         // (LINK TO --mode-fade-time in style.css)
-const TOPBAR_POINTS_PER_PIXEL = 5; // pts/px  points per pixel of topbar letters
+const TOPBAR_POINTS_PER_PIXEL = 7; // pts/px  points per pixel of topbar letters
 const TOPBAR_POINT_RADIUS = 0.25;  // px      size of points in the topbar text
 
+const HOVER_POINT_RADIUS = 0.4;    // px      size of points in the topbar text when hovered, bigger -> whiter
+const HOVER_TIME = 200;            // ms      how long the hover animation takes
+
 // CAMERA
-const FOV = 0.3;      // deg   up-and-down view angle
+const FOV = 70;       // deg   up-and-down view angle
 const CAMERA_PATH = [ //       the path the camera takes
     { time: 0,    yaw: 180, pitch: 0,  distance: 1   },
-    { time: 1200, yaw: 145, pitch: 7,  distance: 0.4 },
-    { time: 2400, yaw: 90,  pitch: 15, distance: 0.7 },
-    { time: 3600, yaw: 45,  pitch: 7,  distance: 0.9 },
-    { time: 4900, yaw: 0,   pitch: 0,  distance: 1   },
+    { time: 1200, yaw: 145, pitch: 15, distance: 0.3 },
+    { time: 2400, yaw: 90,  pitch: 30, distance: 0.5 },
+    { time: 3600, yaw: 45,  pitch: 15, distance: 0.8 },
+    { time: 4500, yaw: 0,   pitch: 0,  distance: 1   },
 
 ];
 const NEAR_CLIP = 0.02; // text-widths points closer to the camera than this aren't drawn
@@ -65,15 +67,13 @@ const TRAIL_DURATION = 500;   // ms      how long a position stays in a trail, r
 const TRAIL_MIN_TIME = 10;    // ms      how often a new trail position is recorded
 const TRAIL_MIN_DISTANCE = 5; // px      pixels a point must move before recording again
 const TRAIL_WIDTH = 1;        // px      number of pixels in trail lines
-const TRAIL_COLOR = "rgba(213, 219, 255, 0.7)";
 const TRAIL_ALPHA = 0.6;      // 0-1     opacity of newest part of a trail
 const TRAIL_FADE_STEPS = 10;  // count   number of brightness levels in the trail, more = smoother fading
 
 // GLOW
-const GLOW_COLOR = "rgba(255, 255, 255, 0.5)";
 const TRAIL_GLOW_STEPS = 3;      // count   how many of the newest brightness levels of a trail glow
 const POINT_GLOW_SIZE = 0.0057;  // ratio   radius of glow around points (8px on a 1990x992 window)
-const POINT_GLOW_STRENGTH = 0.4; // 0-1     brightness of point
+const POINT_GLOW_STRENGTH = 0.6; // 0-1     brightness of point
 const TRAIL_GLOW_SIZE = 0.0043;  // ratio   width of the glow around trails, (6px on a 1990x992 window)
 const TRAIL_GLOW_STRENGTH = 0.2; // 0-1     brightness of trail
 
@@ -107,7 +107,10 @@ function bezier3d(a, b, c, d, t) {
 
 // the point t of the way from a to b, in 3D
 function lerp3(a, b, t) {
-    return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t };
+    return { x: a.x + (b.x - a.x) * t,
+             y: a.y + (b.y - a.y) * t,
+             z: a.z + (b.z - a.z) * t
+    };
 }
 
 // extend the line from `from` through p, `amount` times `from`'s distance past p
@@ -238,6 +241,7 @@ function resize() {
         recolorCapture(false);
         ctx.clearRect(0, 0, width, height);
         drawCapture(performance.now());
+        placeNameButton();
     }
 }
 
@@ -265,7 +269,7 @@ function drawPoints(target) {
     // glow
     if (POINT_GLOW_SIZE > 0 && POINT_GLOW_STRENGTH > 0) {
         const screenSize = Math.sqrt(width * height);
-        target.globalCompositeOperation = "lighter";
+        target.globalCompositeOperation = colors.glowBlend;
         target.globalAlpha = POINT_GLOW_STRENGTH;
         for (const point of points) {
             if (!point.visible) continue;
@@ -280,7 +284,7 @@ function drawPoints(target) {
 
     // draw the points
     target.globalAlpha = 1;
-    target.fillStyle = POINT_COLOR;
+    target.fillStyle = colors.text;
     target.beginPath();
     for (const point of points) {
         if (!point.visible) continue;
@@ -476,6 +480,7 @@ function capturePoints() {
     capture = {
         image,                                                                    // the points as they were, full size
         small: null,                                                              // the points drawn at topbar size
+        hoverSmall: null,                                                         // the same points at hovered size
         fadeFrom: null,                                                           // colored images fading out
         fadeTo: null,                                                             // colored images fading in
         fadeStart: -Infinity,                                                     // time the color fade started
@@ -485,7 +490,7 @@ function capturePoints() {
         height: (bottom - top ) / textWidth
     };
     drawTopbarImage();
-    capture.fadeTo = capture.fadeFrom = { image: capture.image, small: capture.small };
+    capture.fadeTo = capture.fadeFrom = { image: capture.image, small: capture.small, hoverSmall: capture.hoverSmall };
 
     // kill points
     points.length = 0;
@@ -493,8 +498,22 @@ function capturePoints() {
 
 // draw the points at topbar size so text is sharp
 function drawTopbarImage() {
-    const dpr = window.devicePixelRatio || 1;
     const textWidth = width * TOPBAR_TEXT_WIDTH;
+
+    // enough points to fill all letters at this size
+    const letterPixelsHere = letterPixels.length * Math.pow(letterPixelSize * textWidth, 2);
+    const count = Math.round(TOPBAR_POINTS_PER_PIXEL * letterPixelsHere);
+    const targets = [];
+    for (let i = 0; i < count; i++) targets.push(randomInLetters());
+
+    // same points, normal and hovered
+    capture.small      = drawTopbarPoints(targets, textWidth, TOPBAR_POINT_RADIUS);
+    capture.hoverSmall = drawTopbarPoints(targets, textWidth, HOVER_POINT_RADIUS );
+}
+
+// image of points at targets
+function drawTopbarPoints(targets, textWidth, radius) {
+    const dpr = window.devicePixelRatio || 1;
 
     const small = document.createElement("canvas");
     small.width  = Math.max(1, Math.round(capture.width  * textWidth * dpr));
@@ -502,22 +521,34 @@ function drawTopbarImage() {
     const smallCtx = small.getContext("2d");
     smallCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // enough points to fill all letters at this size
-    const letterPixelsHere = letterPixels.length * Math.pow(letterPixelSize * textWidth, 2);
-    const count = Math.round(TOPBAR_POINTS_PER_PIXEL * letterPixelsHere);
-
-    smallCtx.fillStyle = POINT_COLOR;
+    smallCtx.fillStyle = colors.text;
     smallCtx.beginPath();
-    for (let i = 0; i < count; i++) {
-        const target = randomInLetters();
+    for (const target of targets) {
         const x = (target.x - capture.left) * textWidth;
         const y = (target.y - capture.top ) * textWidth;
-        smallCtx.moveTo(x + TOPBAR_POINT_RADIUS, y);
-        smallCtx.arc(x, y, TOPBAR_POINT_RADIUS, 0, Math.PI * 2);
+        smallCtx.moveTo(x + radius, y);
+        smallCtx.arc(x, y, radius, 0, Math.PI * 2);
     }
     smallCtx.fill();
 
-    capture.small = small;
+    return small;
+}
+
+// hover over the topbar text, eased between 0 (not hovered) and 1 (hovered)
+let hoverFrom = 0;
+let hoverTo = 0;
+let hoverStart = -Infinity; // time hover animation started
+function hoverAmount(now) {
+    const t = clamp(0, 1, (now - hoverStart) / HOVER_TIME);
+    const eased = 1 - (1 - t) * (1 - t) * (1 - t); // fast start, slow end
+    return hoverFrom + (hoverTo - hoverFrom) * eased;
+}
+function setHover(to) {
+    const now = performance.now();
+    hoverFrom  = hoverAmount(now);
+    hoverTo    = to;
+    hoverStart = now;
+    startLoop();
 }
 
 // draw captured text, moving it into the topbar once topbarStart is set
@@ -525,6 +556,8 @@ let topbarStart = null; // time the move to the topbar started
 function drawCapture(now) {
     const t = topbarStart === null ? 0 : clamp(0, 1, (now - topbarStart) / TOPBAR_TIME);
     const eased = t < 0.5 ? 4*t*t*t : 1 - Math.pow(2 - 2*t, 3) / 2; // ease in and out
+
+    const hover = hoverAmount(now);
 
     const textWidth = width * (TEXT_SCREEN_WIDTH + (TOPBAR_TEXT_WIDTH - TEXT_SCREEN_WIDTH) * eased);
     const middleY = height / 2 + (TOPBAR_Y - height / 2) * eased;
@@ -549,13 +582,18 @@ function drawCapture(now) {
             ctx.drawImage(images.image, x, y, w, h);
         }
         if (sharp > 0) {
-            ctx.globalAlpha = alpha * sharp;
-            if (sharp === 1) {
-                // in place, so line up with pixels and don't stretch, to keep it sharp
-                const dpr = window.devicePixelRatio || 1;
-                ctx.drawImage(images.small, Math.round(x * dpr) / dpr, Math.round(y * dpr) / dpr, images.small.width / dpr, images.small.height / dpr);
-            } else {
-                ctx.drawImage(images.small, x, y, w, h);
+            // fade from normal to hovered points, which are bigger so the text is whiter
+            const dpr = window.devicePixelRatio || 1;
+            for (const [small, strength] of [[images.small, 1 - hover], [images.hoverSmall, hover]]) {
+                if (strength <= 0) continue;
+
+                // when not moving, line up with pixels and don't stretch, to keep it sharp
+                const box = sharp === 1
+                    ? [Math.round(x * dpr) / dpr, Math.round(y * dpr) / dpr, small.width / dpr, small.height / dpr]
+                    : [x, y, w, h];
+
+                ctx.globalAlpha = alpha * sharp * strength;
+                ctx.drawImage(small, ...box);
             }
         }
     }
@@ -580,7 +618,11 @@ function recolorCapture(fade) {
     const color = getComputedStyle(document.documentElement).getPropertyValue("--text").trim();
 
     capture.fadeFrom  = capture.fadeTo;
-    capture.fadeTo    = { image: colorImage(capture.image, color), small: colorImage(capture.small, color) };
+    capture.fadeTo    = {
+        image:      colorImage(capture.image,      color),
+        small:      colorImage(capture.small,      color),
+        hoverSmall: colorImage(capture.hoverSmall, color)
+    };
     capture.fadeStart = fade ? performance.now() : -Infinity;
 }
 
@@ -604,8 +646,9 @@ function moveToTopbar() {
     try { localStorage.setItem(SEEN_INTRO_KEY, "true"); } catch (error) {}
 }
 
-// recolor text when mode changes
+// recolor when mode changes
 window.addEventListener("modechange", function () {
+    readColors();
     if (capture === null || topbarStart === null) return;
     recolorCapture(true);
     startLoop();
@@ -625,12 +668,13 @@ function skipIntro() {
     ctx.clearRect(0, 0, width, height);
     drawCapture(performance.now());
     showHome();
+    placeNameButton();
 }
 
 // draw the loading percentage
 function drawPercent(percent, size, alpha) {
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = colors.text;
     ctx.font = font(PERCENT_FONT_FAMILY, size);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -726,8 +770,8 @@ function drawTrails(burstTime) {
     }
 
     // add a glow
-    ctx.globalCompositeOperation = "lighter";
-    ctx.strokeStyle = GLOW_COLOR;
+    ctx.globalCompositeOperation = colors.glowBlend;
+    ctx.strokeStyle = colors.glow;
     for (let i = TRAIL_FADE_STEPS - TRAIL_GLOW_STEPS; i < TRAIL_FADE_STEPS; i++) {
         if (i < 0) continue;
         for (let layer = 1; layer <= 3; layer++) {
@@ -739,7 +783,7 @@ function drawTrails(burstTime) {
     ctx.globalCompositeOperation = "source-over";
 
     // draw the trail lines
-    ctx.strokeStyle = TRAIL_COLOR;
+    ctx.strokeStyle = colors.trail;
     ctx.lineWidth = TRAIL_WIDTH;
     for (let i = 0; i < TRAIL_FADE_STEPS; i++) {
         ctx.globalAlpha = TRAIL_ALPHA * (i + 1) / TRAIL_FADE_STEPS;
@@ -779,14 +823,29 @@ function makeGlowSprite() {
     // add color
     const spriteCtx = sprite.getContext("2d");
     const gradient = spriteCtx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-    gradient.addColorStop(0, GLOW_COLOR);
+    gradient.addColorStop(0, colors.glow);
     gradient.addColorStop(1, "transparent");
     spriteCtx.fillStyle = gradient;
     spriteCtx.fillRect(0, 0, size, size);
 
     return sprite;
 }
-const glowSprite = makeGlowSprite();
+
+// the intro's colors, from style.css for the current mode
+let colors = null;
+let glowSprite = null;
+function readColors() {
+    const style = getComputedStyle(document.documentElement);
+    colors = {
+        background: style.getPropertyValue("--background").trim(),
+        text:       style.getPropertyValue("--text").trim(),
+        trail:      style.getPropertyValue("--trail").trim(),
+        glow:       style.getPropertyValue("--glow").trim(),
+        glowBlend: document.documentElement.dataset.mode === "light" ? "source-over" : "lighter"
+    };
+    glowSprite = makeGlowSprite();
+}
+readColors();
 
 
 // ------------------------ RUNNING CODE ------------------------
@@ -851,7 +910,7 @@ function frame(now) {
     // background color, see-through once captured
     ctx.globalAlpha = 1;
     if (capture === null) {
-        ctx.fillStyle = "#000";
+        ctx.fillStyle = colors.background;
         ctx.fillRect(0, 0, width, height);
     } else {
         ctx.clearRect(0, 0, width, height);
@@ -869,12 +928,16 @@ function frame(now) {
     if (capture !== null) {
         const moving = topbarStart !== null && now - topbarStart < TOPBAR_TIME;
         const fading = now - capture.fadeStart < MODE_FADE_TIME;
+        const hovering = now - hoverStart < HOVER_TIME;
 
         // text is in topbar, so show the main page
-        if (topbarStart !== null && !moving) showHome();
+        if (topbarStart !== null && !moving) {
+            showHome();
+            placeNameButton();
+        }
 
         // after captured, only redraw when moving to topbar or changing color
-        if (!moving && !fading) {
+        if (!moving && !fading && !hovering) {
             looping = false;
             return;
         }
@@ -927,6 +990,29 @@ window.addEventListener("touchstart", function (event) {
 });
 window.addEventListener("touchmove", function (event) {
     if (touchStartY !== null && touchStartY - event.touches[0].clientY > 10) moveToTopbar(); // swipe up
+});
+
+// name at the top: see-through button over the text
+const nameButton = document.getElementById("name");
+
+// put button over topbar text
+function placeNameButton() {
+    if (topbarStart === null) return; // not in topbar yet
+
+    const textWidth = width * TOPBAR_TEXT_WIDTH;
+    nameButton.style.left   = width / 2 + capture.left  * textWidth + "px";
+    nameButton.style.top    = TOPBAR_Y  + capture.top   * textWidth + "px";
+    nameButton.style.width  =            capture.width  * textWidth + "px";
+    nameButton.style.height =            capture.height * textWidth + "px";
+}
+
+nameButton.addEventListener("mouseenter", function () { setHover(1); });
+nameButton.addEventListener("mouseleave", function () { setHover(0); });
+
+// clicked, replay intro
+nameButton.addEventListener("click", function () {
+    try { localStorage.removeItem(SEEN_INTRO_KEY); } catch (error) {}
+    location.reload();
 });
 
 window.addEventListener("resize", resize);

@@ -1,11 +1,12 @@
 // ------------------------ SETTINGS ------------------------
 
-const PHYSICS_STEP = 1 / 240; // s   small step for one tick
+const PHYSICS_STEP = 1/240 ; // s   small step for one tick
 
 // WHEEL
-const LAP_TIME = 6000;          // ms      how long the wheel takes to turn all the way around, at starting speed
-const SPEED_CHANGE_TIME = 1000; // ms      how long the wheel takes to speed up from rest
-const CLOCKWISE = true;         //         which way the wheel turns
+const LAP_TIME = 15000;         // ms   how long the wheel takes to turn all the way around, at starting speed
+const SPEED_CHANGE_TIME = 3000; // ms   how long the wheel takes to speed up from rest
+const CLOCKWISE = true;         //      which way the wheel turns
+const LINE_WIDTH = 1;           // px   width of the wheel's circle and the cables, keep the same as style.css
 
 // HANGING
 const CABLE_LENGTH = 0.1;   // ratio   length of the line a box hangs from, compared to the wheel's radius
@@ -14,31 +15,41 @@ const SWING_DAMPING = 1.1;  // 1/s     how quickly swinging dies down, higher ->
 
 
 
+// ------------------------ UTILITIES ------------------------
+
+// measure the wheel's radius in px
+let radius = 0;
+function measureWheel() {
+    radius = wheelEl.clientWidth / 2;
+}
+
+// css transform moving an element to x, y in px
+function translate(x, y) {
+    return "translate(" + x + "px, " + y + "px)";
+}
+
+
+
 // ------------------------ MAIN FUNCTIONS ------------------------
 
 const home = document.getElementById("home");
-const ring = home.querySelector(".ring");
+const wheelEl = home.querySelector(".wheel");
 
-// create cars of wheel, with the line it hangs from
+// create wheel cars, each containing the box and the line it hangs from
 const cars = [];
-const boxes = ring.querySelectorAll(".category");
+const boxes = wheelEl.querySelectorAll(".category");
 for (let i = 0; i < boxes.length; i++) {
     const cable = document.createElement("div");
     cable.className = "cable";
-    ring.insertBefore(cable, boxes[i]);
+    wheelEl.insertBefore(cable, boxes[i]);
 
     cars.push({
         box: boxes[i],
         cable,
-        slot: i,  //         order from the top it is
-        swing: 0, // rad     angle of the line from straight down, positive -> box to the right
+        slot: i,  //         order from the top
+        swing: 0, // rad     cable angle, counterclockwise from down
         spin: 0   // rad/s   how fast the swing angle is changing
     });
-}
-
-let radius = 0; // wheel radius
-function measureWheel() {
-    radius = ring.clientWidth / 2;
 }
 
 // how far the wheel has turned
@@ -47,19 +58,19 @@ const wheel = {
     angle: 0,                                 // rad
     speed: 0,                                 // rad/s
     accel: 0,                                 // rad/s^2
-    ramp: { from: 0, to: baseSpeed, time: 0 } // ease between speeds
+    speedUp: { from: 0, to: baseSpeed, time: 0 } // move between speeds
 };
 
-// turn the wheel, easing between speeds
+// turn wheel, ease between speeds
 function updateWheel(dt) {
-    const ramp = wheel.ramp;
-    const rampTime = SPEED_CHANGE_TIME / 1000;
-    ramp.time = Math.min(rampTime, ramp.time + dt);
+    const speedUp = wheel.speedUp;
+    const speedUpTime = SPEED_CHANGE_TIME / 1000;
+    speedUp.time = Math.min(speedUpTime, speedUp.time + dt);
 
     // ease speed
-    const s = ramp.time / rampTime;
-    wheel.speed = ramp.from + (ramp.to - ramp.from) * (3*s*s - 2*s*s*s);
-    wheel.accel =             (ramp.to - ramp.from) * (6*s - 6*s*s) / rampTime;
+    const s = speedUp.time / speedUpTime;
+    wheel.speed = speedUp.from + (speedUp.to - speedUp.from) * (3*s*s - 2*s*s*s);
+    wheel.accel =                (speedUp.to - speedUp.from) * (6*s - 6*s*s) / speedUpTime;
     wheel.angle += wheel.speed * dt;
 }
 
@@ -69,7 +80,7 @@ function updateSwings(dt) {
     const gravity = cableLength * Math.pow(2 * Math.PI / SWING_PERIOD, 2);
 
     for (const car of cars) {
-        // where the hanging point is rotated the wheel, 0 = top
+        // hanging point's position around wheel
         const angle = wheel.angle + car.slot * 2 * Math.PI / cars.length - Math.PI / 2;
         const cos = Math.cos(angle);
         const sin = Math.sin(angle);
@@ -84,8 +95,9 @@ function updateSwings(dt) {
         car.swing += car.spin * dt;
 
         // update
-        car.x = radius + radius * cos;
-        car.y = radius + radius * sin;
+        const lineRadius = radius - LINE_WIDTH / 2;
+        car.x = radius + lineRadius * cos;
+        car.y = radius + lineRadius * sin;
     }
 }
 
@@ -97,8 +109,8 @@ function drawCars() {
         const endY = car.y + cableLength * Math.cos(car.swing);
 
         car.cable.style.height = cableLength + "px";
-        car.cable.style.transform = "translate(" + car.x + "px, " + car.y + "px) rotate(" + -car.swing + "rad)";
-        car.box  .style.transform = "translate(" +  endX + "px, " +  endY + "px) translate(-50%, 0)";
+        car.cable.style.transform = translate(car.x - LINE_WIDTH / 2, car.y) + " rotate(" + -car.swing + "rad)"; // centered on the hanging point
+        car.box  .style.transform = translate( endX,  endY) + " translate(-50%, 0)";
     }
 }
 
@@ -115,7 +127,7 @@ function wheelFrame(now) {
     lastFrame = now;
     while (behind >= PHYSICS_STEP) {
         behind -= PHYSICS_STEP;
-        updateWheel(PHYSICS_STEP);
+        updateWheel (PHYSICS_STEP);
         updateSwings(PHYSICS_STEP);
     }
 

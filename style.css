@@ -2,17 +2,21 @@
 :root {
     --background: #000;
     --text: #fff;
-    --ring: rgba(255, 255, 255, 0.35);
+    --wheel: rgba(255, 255, 255, 0.35);
     --cable: rgba(255, 255, 255, 0.5);
     --box-border: rgba(255, 255, 255, 0.7);
+    --trail: rgba(213, 219, 255, 0.7);
+    --glow: rgba(255, 255, 255, 0.5);
     --mode-fade: 300ms;
 }
 :root[data-mode="light"] {
     --background: #f6f4ef;
     --text: #111;
-    --ring: rgba(0, 0, 0, 0.3);
+    --wheel: rgba(0, 0, 0, 0.3);
     --cable: rgba(0, 0, 0, 0.45);
     --box-border: rgba(0, 0, 0, 0.65);
+    --trail: rgba(40, 46, 90, 0.7);
+    --glow: rgba(0, 0, 0, 0.25);
 }
 
 body {
@@ -38,7 +42,7 @@ body {
     position: fixed;
     inset: 0;
     box-sizing: border-box;
-    padding-top: 80px; /* room for topbar */
+    padding-top: 80px;
     display: grid;
     place-items: center;
     opacity: 0;
@@ -48,19 +52,19 @@ body {
     opacity: 1;
 }
 
-/* wheel the categories hang from */
-.ring {
+/* circle */
+.wheel {
     --radius: min(24vw, 24vh);
     position: relative;
     top: -5vh;
     width:  calc(var(--radius) * 2);
     height: calc(var(--radius) * 2);
 }
-.ring::before {
+.wheel::before {
     content: "";
     position: absolute;
     inset: 0;
-    border: 1px solid var(--ring);
+    border: 1px solid var(--wheel);
     border-radius: 50%;
     transition: border-color var(--mode-fade) ease;
 }
@@ -76,13 +80,13 @@ body {
     transition: background-color var(--mode-fade) ease;
 }
 
-/* moved by home.js, always upright */
+/* each box */
 .category {
     position: absolute;
     left: 0;
     top: 0;
     padding: 0.9em 1.6em;
-    background: var(--background); /* hides the ring behind the box */
+    background: var(--background); /* moves behind  */
     border: 1px solid var(--box-border);
     font: 200 clamp(14px, 1.6vw, 22px) Palatino, serif;
     letter-spacing: 0.05em;
@@ -91,7 +95,7 @@ body {
     transition: background-color var(--mode-fade) ease, border-color var(--mode-fade) ease;
 }
 
-/* light/dark mode switch, top right */
+/* mode toggle */
 #mode-switch {
     position: fixed;
     top: 24px;
@@ -110,4 +114,13 @@ body {
 }
 #mode-switch:hover {
     opacity: 1;
+}
+
+/* over name at the top */
+#name {
+    position: fixed;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
 }
