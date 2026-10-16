@@ -629,7 +629,6 @@ function startLoop() {
 function moveToTopbar() {
     if (capture === null || topbarStart !== null) return;
     topbarStart = performance.now();
-    canvas.style.cursor = "auto";
     canvas.style.pointerEvents = "none"; // let main page underneath be hovered and clicked
     canvas.classList.add("done");        // fade out dark background
     startLoop();
@@ -646,7 +645,6 @@ function skipIntro() {
     capturePoints();
 
     topbarStart = -Infinity; // already in the topbar
-    canvas.style.cursor = "auto";
     canvas.style.pointerEvents = "none";
     ctx.clearRect(0, 0, width, height);
     drawCapture(performance.now());
@@ -838,7 +836,7 @@ const fontTasks = [
     document.fonts.ready,
     document.fonts.load(font(PERCENT_FONT_FAMILY, SAMPLE_SIZE), "0123456789%").catch(function() {}),
     document.fonts.load(font(TEXT_FONT_FAMILY,    SAMPLE_SIZE), TEXT         ).catch(function() {})
-];
+]
 
 // everything that must finish before intro can start
 const loadTasks = [
@@ -862,9 +860,7 @@ const loadTasks = [
 // load everything
 let loadedCount = 0;
 for (const task of loadTasks) {
-    task.then(function () {
-        loadedCount++;
-    });
+    task.then(function () { loadedCount++; });
 }
 
 // run
@@ -905,12 +901,15 @@ function frame(now) {
     else if (burstTime < 0)    drawLoading(fullAt === null ? null : now - fullAt);
     else                       drawParticles(burstTime);
 
-    // swap points for capture
-    if (capture === null && burstTime > settleTime) capturePoints();
+    // swap points for capture, move text into topbar
+    if (capture === null && burstTime > settleTime) {
+        capturePoints();
+        moveToTopbar();
+    }
 
     if (capture !== null) {
-        const moving = topbarStart !== null && now - topbarStart < TOPBAR_TIME;
-        const hovering = now - hoverStart < HOVER_TIME;
+        const moving   = topbarStart !== null && now - topbarStart < TOPBAR_TIME;
+        const hovering =                         now - hoverStart  < HOVER_TIME;
 
         // text is in topbar, so show the main page
         if (topbarStart !== null && !moving) {
@@ -947,7 +946,7 @@ function drawLoading(sinceFull) {
     }
 }
 
-// darw points, trails, camera, etc.
+// draw points, trails, camera, etc.
 function drawParticles(burstTime) {
     const percentAlpha = 1 - clamp(0, 1, burstTime / PERCENT_FADE_OUT);
     if (percentAlpha > 0) drawPercent(100, BURST_SIZE, percentAlpha);
@@ -957,22 +956,6 @@ function drawParticles(burstTime) {
     drawTrails(burstTime);
     drawPoints(ctx);
 }
-
-// click or scroll down anywhere moves text into topbar
-window.addEventListener("click", moveToTopbar);
-window.addEventListener("wheel", function (event) {
-    if (event.deltaY > 0) moveToTopbar();
-});
-window.addEventListener("keydown", function (event) {
-    if (event.key === "ArrowDown" || event.key === "PageDown" || event.key === " ") moveToTopbar();
-});
-let touchStartY = null;
-window.addEventListener("touchstart", function (event) {
-    touchStartY = event.touches[0].clientY;
-});
-window.addEventListener("touchmove", function (event) {
-    if (touchStartY !== null && touchStartY - event.touches[0].clientY > 10) moveToTopbar(); // swipe up
-});
 
 // name at the top: see-through button over the text
 const nameButton = document.getElementById("name");

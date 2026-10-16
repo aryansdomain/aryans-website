@@ -28,7 +28,6 @@ body {
     width: 100vw;
     height: 100vh;
     z-index: 1000;
-    cursor: pointer;
     background: var(--intro-background);
     transition: background-color 900ms ease-in-out; /* keep the same as TOPBAR_TIME in intro.js */
 }
@@ -44,14 +43,26 @@ body {
     padding-top: 80px;
     display: grid;
     place-items: center;
-    opacity: 0;
-    transition: opacity 600ms ease;
-}
-#home.shown {
-    opacity: 1;
+
+    /* draw when shown: circle and boxes together, then text */
+    --ring-draw: 1200ms;
+    --box-draw: 800ms;
+    --text-draw: 600ms;
 }
 
-/* circle */
+/* progress on circle being drawn */
+@property --drawn {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+
+/* progress on text being written */
+@property --written {
+    syntax: "<percentage>";
+    inherits: false;
+    initial-value: 0%;
+}
 .ring {
     --radius: min(24vw, 24vh);
     position: relative;
@@ -65,6 +76,11 @@ body {
     inset: 0;
     border: 1px solid var(--ring);
     border-radius: 50%;
+    mask: conic-gradient(#000 var(--drawn), transparent 0);
+    transition: --drawn var(--ring-draw) ease-in-out;
+}
+#home.shown .ring::before {
+    --drawn: 360deg;
 }
 
 /* each box */
@@ -73,17 +89,43 @@ body {
     left: 0;
     top: 0;
     padding: 0.9em 1.6em;
-    background: var(--background); /* moves behind  */
-    border: 1px solid var(--box-border);
+    border: 1px solid transparent;
     font: 200 clamp(14px, 1.6vw, 22px) Palatino, serif;
     letter-spacing: 0.05em;
     white-space: nowrap;
     cursor: pointer;
-    transition: border-color 300ms ease, box-shadow 300ms ease;
+    isolation: isolate;
+    transition: box-shadow 300ms ease;
 }
 .category:hover {
-    border-color: var(--text);
     box-shadow: 0 0 12px var(--glow);
+}
+
+/* border of box and background */
+.category::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    z-index: -1;
+    background: var(--background); /* covers circle behind */
+    border: 1px solid var(--box-border);
+    mask: conic-gradient(#000 var(--drawn), transparent 0);
+    transition: --drawn var(--box-draw) ease-in-out, border-color 300ms ease;
+}
+#home.shown .category::before {
+    --drawn: 360deg;
+}
+.category:hover::before {
+    border-color: var(--text);
+}
+
+/* text of box */
+.category span {
+    mask: linear-gradient(90deg, #000 calc(var(--written) - 10%), transparent var(--written));
+    transition: --written var(--text-draw) ease-out calc(var(--box-draw) * 0.75);
+}
+#home.shown .category span {
+    --written: 110%; /* past the end */
 }
 
 /* over name at the top */

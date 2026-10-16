@@ -6,3 +6,5 @@ function showHome() {
     home.classList.add("shown");
     startRing();
 }
+
+// TODO: fix the issue of different screen dimensions
