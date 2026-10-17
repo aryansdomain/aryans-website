@@ -1,11 +1,12 @@
 /* colors */
 :root {
     /* main page */
-    --background: #ffffff;
+    --background: #fbf8ec;
     --text: #111;
     --ring: rgba(0, 0, 0, 0.3);
     --box-border: rgba(0, 0, 0, 0.65);
     --glow: rgba(0, 0, 0, 0.25);
+    --dot: rgba(0, 0, 0, 0.55);
 
     /* intro */
     --intro-background: #000;
@@ -51,6 +52,15 @@ body {
     --name-space: 80px;
     --box-font: clamp(14px, 1.6vw, 22px);
     --box-clear: calc(var(--box-font) * 2);
+}
+
+/* dots wandering the background */
+#dots {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
 }
 
 /* fade out anything the camera moves under the name */
@@ -121,7 +131,7 @@ body {
     content: "";
     position: absolute;
     inset: 0;
-    border: 1px solid var(--ring);
+    border: 2px solid var(--ring);
     border-radius: 50%;
     mask: conic-gradient(#000 var(--drawn), transparent 0);
     transition: --drawn var(--ring-draw) ease-in-out;

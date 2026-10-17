@@ -547,16 +547,24 @@ function setHover(to) {
     startLoop();
 }
 
-// draw captured text, moving it into the topbar once topbarStart is set
+// where the captured text is at a time
 let topbarStart = null; // time the move to the topbar started
-function drawCapture(now) {
+function namePlace(now) {
     const t = topbarStart === null ? 0 : clamp(0, 1, (now - topbarStart) / TOPBAR_TIME);
     const eased = t < 0.5 ? 4*t*t*t : 1 - Math.pow(2 - 2*t, 3) / 2; // ease in and out
 
-    const hover = hoverAmount(now);
+    return {
+        eased: eased,
+        textWidth: width * (TEXT_SCREEN_WIDTH + (TOPBAR_TEXT_WIDTH - TEXT_SCREEN_WIDTH) * eased),
+        middleY: height / 2 + (TOPBAR_Y - height / 2) * eased
+    };
+}
 
-    const textWidth = width * (TEXT_SCREEN_WIDTH + (TOPBAR_TEXT_WIDTH - TEXT_SCREEN_WIDTH) * eased);
-    const middleY = height / 2 + (TOPBAR_Y - height / 2) * eased;
+// draw captured text, moving it into the topbar
+function drawCapture(now) {
+    const { eased, textWidth, middleY } = namePlace(now);
+
+    const hover = hoverAmount(now);
 
     // box location
     const x = width / 2 + capture.left * textWidth;
@@ -632,6 +640,7 @@ function moveToTopbar() {
     canvas.style.pointerEvents = "none"; // let main page underneath be hovered and clicked
     canvas.classList.add("done");        // fade out dark background
     startLoop();
+    showDots();
 
     // intro seen, skip it next time
     try { localStorage.setItem(SEEN_INTRO_KEY, "true"); } catch (error) {}
@@ -650,6 +659,7 @@ function skipIntro() {
     drawCapture(performance.now());
     showHome();
     placeNameButton();
+    showDots();
 }
 
 // draw the loading percentage
