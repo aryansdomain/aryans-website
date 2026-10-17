@@ -37,17 +37,32 @@ body {
 
 /* main page */
 #home {
-    position: fixed;
-    inset: 0;
-    box-sizing: border-box;
-    padding-top: 80px;
-    display: grid;
-    place-items: center;
+    position: relative;
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
 
     /* draw when shown: circle and boxes together, then text */
     --ring-draw: 1200ms;
     --box-draw: 800ms;
     --text-draw: 600ms;
+
+    /* layout */
+    --name-space: 80px;
+    --box-font: clamp(14px, 1.6vw, 22px);
+    --box-clear: calc(var(--box-font) * 2);
+}
+
+/* fade out anything the camera moves under the name */
+#name-fade {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--name-space);
+    z-index: 6;
+    pointer-events: none;
+    background: linear-gradient(var(--background) 70%, transparent);
 }
 
 /* progress on circle being drawn */
@@ -63,10 +78,42 @@ body {
     inherits: false;
     initial-value: 0%;
 }
+
+/* scene moved by camera */
+#world {
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    padding-top: var(--name-space);
+    display: grid;
+    place-items: center;
+    transform-origin: 0 0;
+    transform: translate(0px, 0px) scale(1);
+    will-change: transform;
+}
+
+/* liquid shapes for subcategories */
+#liquid-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+}
+
+/* colors of gooey filter*/
+#goo .goo-fill {
+    flood-color: var(--background);
+}
+#goo .goo-border {
+    flood-color: var(--box-border);
+}
+
+
 .ring {
-    --radius: min(24vw, 24vh);
+    --radius: min(24vw, 24vh, calc((100dvh - var(--name-space)) / 2 - var(--box-clear)));
     position: relative;
-    top: -5vh;
     width:  calc(var(--radius) * 2);
     height: calc(var(--radius) * 2);
 }
@@ -88,16 +135,22 @@ body {
     position: absolute;
     left: 0;
     top: 0;
+    box-sizing: border-box;
+    margin: 0;
     padding: 0.9em 1.6em;
     border: 1px solid transparent;
-    font: 200 clamp(14px, 1.6vw, 22px) Palatino, serif;
+    background: var(--background);
+    color: var(--text);
+    font: 200 var(--box-font) Palatino, serif;
     letter-spacing: 0.05em;
     white-space: nowrap;
     cursor: pointer;
     isolation: isolate;
     transition: box-shadow 300ms ease;
 }
-.category:hover {
+.category:hover,
+.category:focus-visible {
+    outline: none;
     box-shadow: 0 0 12px var(--glow);
 }
 
@@ -107,7 +160,6 @@ body {
     position: absolute;
     inset: -1px;
     z-index: -1;
-    background: var(--background); /* covers circle behind */
     border: 1px solid var(--box-border);
     mask: conic-gradient(#000 var(--drawn), transparent 0);
     transition: --drawn var(--box-draw) ease-in-out, border-color 300ms ease;
@@ -115,7 +167,8 @@ body {
 #home.shown .category::before {
     --drawn: 360deg;
 }
-.category:hover::before {
+.category:hover::before,
+.category:focus-visible::before {
     border-color: var(--text);
 }
 
@@ -128,9 +181,35 @@ body {
     --written: 110%; /* past the end */
 }
 
-/* over name at the top */
+/* liquid */
+.category.liquid::before,
+.category.liquid span {
+    visibility: hidden;
+}
+
+/* lens: blur stuff behind it */
+#lens {
+    position: absolute;
+    inset: 0;
+    z-index: 5; /* over scene, under name */
+    pointer-events: none;
+}
+#lens div {
+    position: absolute;
+    inset: 0;
+    -webkit-backdrop-filter: blur(var(--blur));
+            backdrop-filter: blur(var(--blur));
+    -webkit-mask: radial-gradient(ellipse 70% 60% at 50% 50%, transparent var(--start), #000 calc(var(--start) + 8%));
+            mask: radial-gradient(ellipse 70% 60% at 50% 50%, transparent var(--start), #000 calc(var(--start) + 8%));
+}
+#lens div:nth-child(1) { --blur: 0.5px;  --start: 62%; }
+#lens div:nth-child(2) { --blur: 0.75px; --start: 74%; }
+#lens div:nth-child(3) { --blur: 1px;    --start: 86%; }
+#lens div:nth-child(4) { --blur: 1.5px;  --start: 98%; }
+
 #name {
-    position: fixed;
+    position: absolute;
+    z-index: 10;
     padding: 0;
     background: none;
     border: none;

@@ -16,15 +16,54 @@
         <!-- replay intro button -->
         <button id="name" aria-label="replay intro"></button>
 
-        <div class="ring">
-            <div class="category"><span>About</span></div>
-            <div class="category"><span>Writing</span></div>
-            <div class="category"><span>Research</span></div>
-            <div class="category"><span>Games</span></div>
+        <!-- scene moved by camera -->
+        <div id="world">
+            <div class="ring">
+                <button class="category" data-cat="about"><span>About</span></button>
+                <button class="category" data-cat="writing"><span>Writing</span></button>
+                <button class="category" data-cat="research"><span>Research</span></button>
+                <button class="category" data-cat="games"><span>Games</span></button>
+                <button class="category" data-cat="projects"><span>Projects</span></button>
+            </div>
+
+            <!-- liquid shapes for subcategories -->
+            <svg id="liquid-layer" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <!-- gooey filter with blur -->
+                    <filter id="goo" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+                        <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+                        <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 24 -10" result="goo" />
+                        <feMorphology in="goo" operator="dilate" radius="1" result="grown" />
+                        <feFlood class="goo-border" result="border-color" />
+                        <feComposite in="border-color" in2="grown" operator="in" result="border" />
+                        <feFlood class="goo-fill" result="fill-color" />
+                        <feComposite in="fill-color" in2="goo" operator="in" result="fill" />
+                        <feMerge>
+                            <feMergeNode in="border" />
+                            <feMergeNode in="fill" />
+                        </feMerge>
+                    </filter>
+                </defs>
+
+                <g id="liquid-shapes"></g>
+                <g id="liquid-labels"></g>
+            </svg>
+        </div>
+
+        <!-- fades out anything under the name -->
+        <div id="name-fade" aria-hidden="true"></div>
+
+        <!-- lens blur around edges of the screen -->
+        <div id="lens" aria-hidden="true">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
         </div>
     </main>
 
     <script src="ring.js"></script>
+    <script src="liquid.js"></script>
     <script src="home.js"></script>
     <script src="intro.js"></script>
 </body>
