@@ -200,6 +200,7 @@ function focus(box) {
 }
 // camera starts back
 function unfocus() {
+    start();
     moveCamera({ x: 0, y: 0, scale: 1 }, RETRACT_TIME);
     retractSubcats();
     phase = "unfocusing";
@@ -233,7 +234,6 @@ function homeFrame(now) {
         if (isStable()) phase = "focused";
     } else if (phase === "unfocusing") {
         if (isStable()) {
-            start();
             focusedBox = null;
             layout = null;
             phase = "idle";
