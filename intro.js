@@ -15,16 +15,16 @@ const SAMPLE_SIZE = 100;                // px      size text is measured at, lar
 // 1. LOADING PERCENTAGE
 const PERCENT_FONT_FAMILY = "'Helvetica Neue'"; //      loading percentage font family
 const FASTEST_LOAD_TIME = 1000;                 // ms   quickest the percentage can go from 0 to 100
-const HOLD_TIME = 100;                          // ms   how long percentage is at 100% before shrinking
-const SHRINK_TIME = 200;                        // ms   how long the percentage shrink takes
-const PERCENT_FADE_OUT = 100;                   // ms   how long the percentage fade out takes
+const HOLD_TIME = 100;                          // ms   time percentage is at 100% before shrinking
+const SHRINK_TIME = 200;                        // ms   time percentage shrink takes
+const PERCENT_FADE_OUT = 100;                   // ms   time percentage fade out takes
 const START_SIZE = 18;                          // px   text size of percentage at 0%
 const PEAK_SIZE = 26;                           // px   text size of percentage at 100%
 const BURST_SIZE = 14;                          // px   text size of percentage as it bursts
 const GROW_EASE = 2;                            //      how hard the easing is, higher -> faster start, earlier slow-down
 
 // 2. BURST
-const BURST_TIME = 1500;      // ms            how long points take to fly out
+const BURST_TIME = 1500;      // ms            time points take to fly out
 const BURST_END_SPEED = 0.6;  // ratio         ratio of final speed to burst speed
 const BURST_RADIUS = 1;       // text-widths   size the ball the points burst out into
 const MIN_SLOWNESS = 0.55;    // ratio         ratio of BURST_TIME and FORM_TIME the fastest points take
@@ -32,21 +32,21 @@ const SLOWNESS_SPREAD = 0.25; // ratio         how much longer the slowest point
 
 // 3. DRIFT
 const DRIFT_START_SPEED = 0.3; // ratio         when points reach this speed from burst, they start drifting
-const DRIFT_TIME = 2000;       // ms            how long points drift before heading to the text
+const DRIFT_TIME = 2000;       // ms            time points drift before heading to the text
 const DRIFT_REACH = 0.2;       // text-widths   how far each drifting curve can reach
 
 // 4. FORM
-const FORM_TIME = 2000; // ms   how long points take to travel to the text
+const FORM_TIME = 2000; // ms   time points take to travel to the text
 
 // 5. TOPBAR
-const TOPBAR_TIME = 900;           // ms      how long the text takes to move up into the topbar
+const TOPBAR_TIME = 900;           // ms      time text takes to move up into the topbar
 const TOPBAR_TEXT_WIDTH = 0.12;    // ratio   how much of the width of the screen the text fills in the topbar
 const TOPBAR_Y = 40;               // px      how far the middle of the text is from the top of the screen
 const TOPBAR_POINTS_PER_PIXEL = 7; // pts/px  points per pixel of topbar letters
 const TOPBAR_POINT_RADIUS = 0.25;  // px      size of points in the topbar text
 
 const HOVER_POINT_RADIUS = 0.4;    // px      size of points in the topbar text when hovered, bigger -> bolder
-const HOVER_TIME = 200;            // ms      how long the hover animation takes
+const HOVER_TIME = 200;            // ms      time the hover animation takes
 
 // CAMERA
 const FOV = 70;       // deg   up-and-down view angle
@@ -61,7 +61,7 @@ const CAMERA_PATH = [ //       the path the camera takes
 const NEAR_CLIP = 0.02; // text-widths points closer to the camera than this aren't drawn
 
 // TRAILS
-const TRAIL_DURATION = 500;   // ms      how long a position stays in a trail, roughly the length of the trail
+const TRAIL_DURATION = 500;   // ms      time a position stays in a trail, roughly the length of the trail
 const TRAIL_MIN_TIME = 10;    // ms      how often a new trail position is recorded
 const TRAIL_MIN_DISTANCE = 5; // px      pixels a point must move before recording again
 const TRAIL_WIDTH = 1;        // px      number of pixels in trail lines
