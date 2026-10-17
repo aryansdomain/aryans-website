@@ -18,9 +18,8 @@ const MIN_CAMERA_SCALE = 0.6; //      furthest camera zooms out to fit subcatego
 const subcats = {
     about: ["Me", "Contact"],
     writing: ["Essays", "Short Stories", "Poetry"],
-    research: ["2025", "2026"],
-    games: ["Wörtel"],
-    projects: ["Intscript"]
+    research: ["2026", "2027"],
+    projects: ["Intscript", "Wörtel"]
 };
 
 function getSubcats(box) {
