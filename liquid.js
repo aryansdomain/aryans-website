@@ -1,8 +1,9 @@
 // ------------------------ SETTINGS ------------------------
 
-const EXTEND_TIME  = 600; // ms   time subboxes take to come out of  their box
-const RETRACT_TIME = 450; // ms   time subboxes take to go back into their box
-const LABEL_TIME   = 300; // ms   time labels take to fade in or out
+const EXTEND_TIME  = 600;      // ms   time subboxes take to come out of  their box
+const RETRACT_TIME = 450;      // ms   time subboxes take to go back into their box
+const LABEL_TIME   = 300;      // ms   time labels take to fade in or out
+const SUBBOX_HOVER_TIME = 300; // ms   time hover glow takes to fade in or out (same as box-shadow transition in style.css)
 
 const EXTEND_BOX_AT   = 0.4; // fraction of extending time at which the blob has become a rectangle
 const RETRACT_BLOB_AT = 0.9; // fraction of retracting time at which the subbox has become a blob
@@ -43,6 +44,15 @@ let blobs = [];
 let liquidParent = null; // box the blobs come out of
 let liquidTime = 0;      // time since blobs came out
 
+// mouse, for hovering subboxes like boxes
+const liquidHome = document.getElementById("home");
+const canHover = window.matchMedia("(hover: hover)"); // phones keep hover after a tap
+let liquidPointer = null; // where the mouse is on the screen
+liquidHome.addEventListener("pointermove", function (event) {
+    liquidPointer = event.pointerType === "touch" ? null : { x: event.clientX, y: event.clientY };
+});
+liquidHome.addEventListener("pointerleave", function () { liquidPointer = null; });
+
 
 
 // ------------------------ UTILITIES ------------------------
@@ -53,6 +63,24 @@ function makeSilhouette(tag) {
     shape.style.fill = "#000";
     liquidShapes.appendChild(shape);
     return shape;
+}
+
+// hover glow and border in unfiltered layer, under label
+function makeHoverShapes() {
+    const glow = document.createElementNS(SVG_NS, "rect");
+    glow.setAttribute("filter", "url(#subbox-glow)");
+    glow.style.fill = "#000";
+
+    const border = document.createElementNS(SVG_NS, "rect");
+    border.style.fill = "none";
+    border.style.stroke = "var(--text)";
+    border.style.strokeWidth = "1";
+
+    for (const shape of [glow, border]) {
+        shape.style.opacity = 0;
+        liquidLabels.appendChild(shape);
+    }
+    return { glow: glow, border: border };
 }
 
 // label in unfiltered layer
@@ -88,8 +116,11 @@ function spawnSubcats(parent, layout) {
     // draw box here
     liquidParent = {
         box: parent,
+        x: origin.x, y: origin.y,
         width: layout.box.width, height: layout.box.height,
+        hover: 0,
         shape: makeSilhouette("rect"),
+        hoverShapes: makeHoverShapes(),
         text: makeLabel(parent.textContent.trim())
     };
     liquidParent.text.style.font = boxFont(parent, 1);
@@ -119,7 +150,10 @@ function spawnSubcats(parent, layout) {
             driftPhase: Math.random() * Math.PI * 2,
             driftPeriod: SUSPEND_PERIOD * (0.8 + Math.random() * 0.4),
 
+            hover: 0,
+
             bodyShape: makeSilhouette("rect"),
+            hoverShapes: makeHoverShapes(),
             text: makeLabel(subbox.label)
         };
         blob.text.style.font = boxFont(parent, subbox.height / layout.box.height);
@@ -148,6 +182,8 @@ function retractSubcats() {
 function updateLiquid(dt) {
     if (blobs.length === 0) return;
     const origin = getBoxCenter(liquidParent.box, false);
+    liquidParent.x = origin.x;
+    liquidParent.y = origin.y;
     liquidTime += dt;
 
     blobs.forEach(function (blob) {
@@ -178,12 +214,33 @@ function updateLiquid(dt) {
         }
     });
 
+    // fade hover in on the subbox
+    const hovered = hoveredShape();
+    [liquidParent].concat(blobs).forEach(function (shape) {
+        const step = dt / SUBBOX_HOVER_TIME;
+        shape.hover = shape === hovered ? Math.min(1, shape.hover + step) : Math.max(0, shape.hover - step);
+    });
+    liquidHome.style.cursor = hovered ? "pointer" : "";
+
     // all back inside
     if (blobs.every(function (blob) { return blob.phase === "retracted"; })) {
         clearBlobs();
         return;
     }
     drawLiquid(origin);
+}
+
+// parent/finished subbox under the mouse
+function hoveredShape() {
+    if (liquidPointer === null || !canHover.matches) return null;
+    const rect = liquidHome.getBoundingClientRect();
+    const x = (liquidPointer.x - rect.left - worldCamera.x) / worldCamera.scale; // in the world
+    const y = (liquidPointer.y - rect.top  - worldCamera.y) / worldCamera.scale;
+
+    return [liquidParent].concat(blobs).find(function (shape) {
+        if (shape !== liquidParent && shape.phase !== "settle" && shape.phase !== "extended") return false;
+        return Math.abs(x - shape.x) <= shape.width / 2 && Math.abs(y - shape.y) <= shape.height / 2;
+    }) || null;
 }
 
 // smallest rectangle around blobs
@@ -277,6 +334,7 @@ function drawLiquid(origin) {
         height: liquidParent.height
     });
     setAttributes(liquidParent.text, { x: origin.x, y: origin.y });
+    drawHover(liquidParent);
 
     blobs.forEach(function (blob) {
         setAttributes(blob.bodyShape, {
@@ -286,12 +344,31 @@ function drawLiquid(origin) {
             height: blob.height,
             rx: blob.cornerRadius
         });
+        drawHover(blob);
 
         // keep label upright
         blob.text.setAttribute("x", blob.x);
         blob.text.setAttribute("y", blob.y);
         blob.text.style.opacity = blob.opacity;
     });
+}
+
+// hover glow, and border
+function drawHover(shape) {
+    setAttributes(shape.hoverShapes.glow, {
+        x: shape.x - shape.width / 2,
+        y: shape.y - shape.height / 2,
+        width:  shape.width,
+        height: shape.height
+    });
+    setAttributes(shape.hoverShapes.border, {
+        x: shape.x - shape.width / 2 - 0.5,
+        y: shape.y - shape.height / 2 - 0.5,
+        width:  shape.width + 1,
+        height: shape.height + 1
+    });
+    shape.hoverShapes.glow.style.opacity   = shape.hover;
+    shape.hoverShapes.border.style.opacity = shape.hover;
 }
 
 // how far out a blob is
@@ -329,6 +406,7 @@ function clearBlobs() {
     blobs = [];
     liquidParent = null;
     liquidTime = 0;
+    liquidHome.style.cursor = "";
     liquidShapes.replaceChildren();
     liquidLabels.replaceChildren();
 }

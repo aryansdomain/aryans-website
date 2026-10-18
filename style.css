@@ -106,6 +106,12 @@ body {
 }
 
 
+/* hover glow around subboxes */
+#subbox-glow .glow-fill {
+    flood-color: var(--glow);
+}
+
+
 /* chromatic abberation */
 #liquid-layer .channel-1 {
     flood-color: var(--channel-1);
@@ -185,6 +191,9 @@ body {
 .category.liquid::before,
 .category.liquid span {
     visibility: hidden;
+}
+.category.liquid {
+    box-shadow: none !important;
 }
 
 /* lens: blur stuff behind it */

@@ -974,7 +974,6 @@ for (const task of loadTasks) {
 }
 
 // run
-
 let shownPercent = 0;
 let lastTime = null;
 let fullAt = null; // time the percentage reached 100
