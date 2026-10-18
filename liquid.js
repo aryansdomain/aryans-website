@@ -12,21 +12,32 @@ const BLOB_SIZE = 1; // diameter of blob between box and subbox, compared to its
 
 const GOO_BLUR = 1; // px   how far apart shapes can be and still join
 
+// SUSPENDING
+const SUSPEND_DRIFT = 5;     // px      how far subboxes drift while hanging there
+const SUSPEND_PERIOD = 3800; // ms      time one drift loop takes
+
 
 
 // ------------------------ STATE ------------------------
 
 const SVG_NS = "http://www.w3.org/2000/svg";
-const liquidShapes = document.getElementById("liquid-shapes");
-const liquidLabels = document.getElementById("liquid-labels");
+const liquidShapes    = document.getElementById("liquid-shapes");
+const liquidLabels    = document.getElementById("liquid-labels");
 
 // goo filter
 liquidShapes.setAttribute("filter", "url(#goo)");
 const gooBlur = document.querySelector("#goo feGaussianBlur");
 
+const boxBorderAlpha = (function () {
+    const parts = getComputedStyle(document.documentElement).getPropertyValue("--box-border").match(/[\d.]+/g);
+    return parts && parts.length === 4 ? parseFloat(parts[3]) : 1;
+})();
+document.getElementById("goo-border-alpha").setAttribute("values", "1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 " + boxBorderAlpha + " 0");
+
 // one blob per subcategory, each turning into a subbox
 let blobs = [];
 let liquidParent = null; // box the blobs come out of
+let liquidTime = 0;      // time since blobs came out
 
 
 
@@ -100,6 +111,10 @@ function spawnSubcats(parent, layout) {
             progress: 0,     // 0 = inside parent, 1 = at target
             gooiness: 0,     // 0 = crisp, 1 = fully liquid
 
+            // own drift while suspended
+            driftPhase: Math.random() * Math.PI * 2,
+            driftPeriod: SUSPEND_PERIOD * (0.8 + Math.random() * 0.4),
+
             bodyShape: makeSilhouette("rect"),
             text: makeLabel(subbox.label)
         };
@@ -129,6 +144,7 @@ function retractSubcats() {
 function updateLiquid(dt) {
     if (blobs.length === 0) return;
     const origin = getBoxCenter(liquidParent.box, false);
+    liquidTime += dt;
 
     blobs.forEach(function (blob) {
         if (blob.phase === "extend") {
@@ -147,7 +163,15 @@ function updateLiquid(dt) {
         }
 
         if (blob.phase === "retract" || blob.phase === "retracted") shapeBlob(blob, origin, blob.from, blob.retractProgress, RETRACT_BLOB_AT - RESHAPE_TIME, RETRACT_BLOB_AT);
-        else shapeBlob(blob, origin, finishedSubbox(blob), 1 - blob.progress, 1 - EXTEND_BOX_AT, 1 - EXTEND_BOX_AT + RESHAPE_TIME);
+        else {
+            shapeBlob(blob, origin, finishedSubbox(blob), 1 - blob.progress, 1 - EXTEND_BOX_AT, 1 - EXTEND_BOX_AT + RESHAPE_TIME);
+
+            // drift in a slow loop
+            const drift = SUSPEND_DRIFT * outAmount(blob);
+            const angle = 2 * Math.PI * liquidTime / blob.driftPeriod + blob.driftPhase;
+            blob.x += Math.cos(angle) * drift;
+            blob.y += Math.sin(2 * angle) * drift / 2;
+        }
     });
 
     // all back inside
@@ -265,10 +289,22 @@ function drawLiquid(origin) {
     });
 }
 
+// how far out a blob is
+function outAmount(blob) {
+    if (blob.phase === "retract" || blob.phase === "retracted") return 1 - smoothstep(Math.min(1, blob.retractProgress * 2));
+    if (blob.phase === "extend") return smoothstep(blob.progress);
+    return 1;
+}
+
+function smoothstep(u) {
+    return u * u * (3 - 2 * u);
+}
+
 function clearBlobs() {
     if (liquidParent !== null) liquidParent.box.classList.remove("liquid"); // draw box again
     blobs = [];
     liquidParent = null;
+    liquidTime = 0;
     liquidShapes.replaceChildren();
     liquidLabels.replaceChildren();
 }

@@ -8,9 +8,9 @@ const POINT_RADIUS = 1.8;        // px
 
 // TEXT
 const TEXT = "Aryan Singhal";
-const TEXT_SCREEN_WIDTH = 0.5;          // ratio   how much of the width of the screen the text fills
-const TEXT_FONT_FAMILY    = "Palatino"; //         text font family
-const SAMPLE_SIZE = 100;                // px      size text is measured at, larger -> more accurate shape
+const TEXT_SCREEN_WIDTH = 0.5;       // ratio   how much of the width of the screen the text fills
+const TEXT_FONT_FAMILY = "Palatino"; //         text font family
+const SAMPLE_SIZE = 100;             // px      size text is measured at, larger -> more accurate shape
 
 // 1. LOADING PERCENTAGE
 const PERCENT_FONT_FAMILY = "'Helvetica Neue'"; //      loading percentage font family
@@ -563,6 +563,7 @@ function namePlace(now) {
 // draw captured text, moving it into the topbar
 function drawCapture(now) {
     const { eased, textWidth, middleY } = namePlace(now);
+    setIntroLens(1 - eased); // lens fades out as the name moves into the topbar
 
     const hover = hoverAmount(now);
 
@@ -1000,6 +1001,7 @@ if (seenIntro) {
     // no intro
     canvas.style.transition = "none";
     canvas.classList.add("done");
+    setIntroLens(0);
     Promise.all(loadTasks).then(skipIntro);
 }
 else startLoop();

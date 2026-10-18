@@ -1,27 +1,32 @@
 // ------------------------ SETTINGS ------------------------
 
-const DOT_COUNT = 800;       //        number of dots wandering the background
-const DOT_RADIUS = 1.5;      // px
-const DOT_MIN_ALPHA = 0.15;  // 0-1    faintest a dot can be
+const DOTS_PER_PIXEL = 0.000405; // dots/px   dots wandering the background per pixel of window (800 on a 1990x992 window)
+const DOT_RADIUS = 1.5;          // px
+const DOT_MIN_ALPHA = 0.15;      // 0-1       faintest a dot can be
 
 // APPEAR
-const APPEAR_START = 0.1;    // ratio  fraction of TOPBAR_TIME when the first dot appears
-const APPEAR_END = 0.9;      // ratio  fraction of TOPBAR_TIME when the last  dot appears
-const DOT_FADE_IN = 800;     // ms     time each dot takes to fade in
+const APPEAR_START = 0.1; // ratio   fraction of TOPBAR_TIME when the first dot appears
+const APPEAR_END = 0.9;   // ratio   fraction of TOPBAR_TIME when the last  dot appears
+const DOT_FADE_IN = 800;  // ms      time each dot takes to fade in
 
 // WANDER
-const WANDER_SPEED = 35;     // px/s
-const WANDER_VARIETY = 0.6;  // ratio  how much wander speed differs between dots
-const WANDER_TURN = 1.2;     // rad/s  fastest dots turn while wandering
-const WANDER_JITTER = 4;     //        how often a dot changes which way it's turning, higher -> wigglier
-const EDGE_MARGIN = 60;      // px     how close to edges the dots get before turning back
-const EDGE_STEER = 3;        //        how hard dots turn back from edges
-const EDGE_TOLERANCE = 40;   // px     how far past EDGE_MARGIN a dot may go before turning
+const WANDER_SPEED = 35;    // px/s
+const WANDER_VARIETY = 0.6; // ratio   how much wander speed differs between dots
+const WANDER_TURN = 1.2;    // rad/s   fastest dots turn while wandering
+const WANDER_JITTER = 4;    //         how often a dot changes which way it's turning, higher -> wigglier
+const EDGE_MARGIN = 60;     // px      how close to edges the dots get before turning back
+const EDGE_STEER = 3;       //         how hard dots turn back from edges
+const EDGE_TOLERANCE = 40;  // px      how far past EDGE_MARGIN a dot may go before turning
 
-const CURSOR_MARGIN = 80;    // px     how close to the cursor dots get before turning away
-const CURSOR_STEER = 200;     //        how hard dots turn away from the cursor
-const CURSOR_SPEEDUP = 5;    // ratio  how much faster than wandering dots are when at the cursor
-const CURSOR_CALM = 600;     // ms     how quickly fleeing dots slow back down to wandering
+const CURSOR_MARGIN = 80; // px      how close to the cursor dots get before turning away
+const CURSOR_STEER = 200; //         how hard dots turn away from the cursor
+const CURSOR_SPEEDUP = 5; // ratio   how much faster than wandering dots are when at the cursor
+const CURSOR_CALM = 600;  // ms      how quickly fleeing dots slow back down to wandering
+
+// CHROMATIC ABERRATION
+const CHROMA_OFFSET = 2; // px    how far colors split from a dot at a boundary
+const CHROMA_ALPHA = 1;  // 0-1   how strong the color splits are, compared to the dot
+const CHROMA_EASE = 150; // ms    how quickly color split follows the dot
 
 
 
@@ -36,6 +41,7 @@ const dots = [];
 let dotWidth = 0;
 let dotHeight = 0;
 let dotColor = null;
+let channelColors = null; // the two sides of the chromatic aberration
 let cursor = null;
 
 // resize canvas to window
@@ -48,9 +54,11 @@ function resizeDots() {
     dotCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
-// dots' color, from style.css
+// dots' colors, from style.css
 function readDotColor() {
-    dotColor = getComputedStyle(document.documentElement).getPropertyValue("--dot").trim();
+    const style = getComputedStyle(document.documentElement);
+    dotColor = style.getPropertyValue("--dot").trim();
+    channelColors = [style.getPropertyValue("--channel-1").trim(), style.getPropertyValue("--channel-2").trim()];
 }
 
 // a random ratio around 1, up to amount above or below
@@ -76,20 +84,22 @@ function angleBetween(a, b) {
 function showDots() {
     if (dots.length > 0) return;
     const now = performance.now();
-    const top = NAME_SPACE + EDGE_MARGIN;
 
-    for (let i = 0; i < DOT_COUNT; i++) {
+    const count = Math.round(DOTS_PER_PIXEL * dotWidth * dotHeight);
+    for (let i = 0; i < count; i++) {
         dots.push({
             appearAt: now + TOPBAR_TIME * (APPEAR_START + (APPEAR_END - APPEAR_START) * Math.random()),
             x: EDGE_MARGIN + Math.random() * Math.max(0, dotWidth  - 2 * EDGE_MARGIN),
-            y: top         + Math.random() * Math.max(0, dotHeight - top - EDGE_MARGIN),
+            y: EDGE_MARGIN + Math.random() * Math.max(0, dotHeight - 2 * EDGE_MARGIN),
             wanderSpeed: WANDER_SPEED * vary(WANDER_VARIETY),
             alpha: DOT_MIN_ALPHA + (1 - DOT_MIN_ALPHA) * Math.random(),
             heading: Math.random() * Math.PI * 2, // direction it's heading
             turn: 0, // how fast direction is changing
             reach: randomReach(), // how far past EDGE_MARGIN it goes before turning back this time
             turningBack: false, // is it turning back from an edge
-            boost: 0 // extra speed from fleeing the cursor, as a ratio of wander speed
+            boost: 0, // extra speed from fleeing the cursor, as a ratio of wander speed
+            chroma: 0, // how split the color channels are
+            chromaAngle: 0 // which way the channels split, away from the closest boundary
         });
     }
     startDotLoop();
@@ -105,17 +115,16 @@ function moveDot(dot, dt) {
     dot.turn = clamp(-WANDER_TURN, WANDER_TURN, dot.turn);
     dot.heading += dot.turn * seconds;
 
-    // near the edges, turn back to the middle, and stay away from name
-    const top = NAME_SPACE;
+    // near the edges, turn back to the middle
     const margin = EDGE_MARGIN - dot.reach;
     const nearEdge = Math.max(
         (margin - dot.x) / EDGE_MARGIN,
         (dot.x - (dotWidth - margin)) / EDGE_MARGIN,
-        (top + margin - dot.y) / EDGE_MARGIN,
+        (margin - dot.y) / EDGE_MARGIN,
         (dot.y - (dotHeight - margin)) / EDGE_MARGIN
     );
+    const toMiddle = Math.atan2(dotHeight / 2 - dot.y, dotWidth / 2 - dot.x);
     if (nearEdge > 0) {
-        const toMiddle = Math.atan2(dotHeight / 2 + top / 2 - dot.y, dotWidth / 2 - dot.x);
         steerToward(dot, toMiddle, nearEdge, EDGE_STEER, seconds);
         dot.turningBack = true;
     } else if (dot.turningBack) {
@@ -123,6 +132,10 @@ function moveDot(dot, dt) {
         dot.turningBack = false;
         dot.reach = randomReach();
     }
+
+    // color channels split
+    let chroma = (NAME_SPACE + EDGE_MARGIN - dot.y) / EDGE_MARGIN;
+    let chromaAngle = toMiddle;
 
     // near the cursor, turn away from it and speed up, calm down after
     dot.boost *= Math.exp(-dt / CURSOR_CALM);
@@ -133,8 +146,19 @@ function moveDot(dot, dt) {
             const awayFromCursor = Math.atan2(dot.y - cursor.y, dot.x - cursor.x);
             steerToward(dot, awayFromCursor, nearCursor, CURSOR_STEER, seconds);
             dot.boost = Math.max(dot.boost, CURSOR_SPEEDUP * nearCursor);
+
+            // cursor is the closer boundary
+            if (nearCursor > chroma) {
+                chroma = nearCursor;
+                chromaAngle = awayFromCursor;
+            }
         }
     }
+
+    // ease towarda new split
+    const follow = 1 - Math.exp(-dt / CHROMA_EASE);
+    dot.chroma += (clamp(0, 1, chroma) - dot.chroma) * follow;
+    if (chroma > 0) dot.chromaAngle = chromaAngle;
 
     const speed = dot.wanderSpeed * (1 + dot.boost);
     dot.x += Math.cos(dot.heading) * speed * seconds;
@@ -150,12 +174,27 @@ function steerToward(dot, angle, closeness, strength, seconds) {
 // draw dots, fading in after they appear
 function drawDots(now) {
     dotCtx.clearRect(0, 0, dotWidth, dotHeight);
-    dotCtx.fillStyle = dotColor;
     for (const dot of dots) {
         const shown = clamp(0, 1, (now - dot.appearAt) / DOT_FADE_IN);
         if (shown <= 0) continue;
+        const alpha = shown * dot.alpha;
 
-        dotCtx.globalAlpha = shown * dot.alpha;
+        // color channels on either side, split away from the closest boundary
+        if (dot.chroma > 0.01) {
+            const offset = CHROMA_OFFSET * dot.chroma;
+            const dx = Math.cos(dot.chromaAngle) * offset;
+            const dy = Math.sin(dot.chromaAngle) * offset;
+            dotCtx.globalAlpha = alpha * CHROMA_ALPHA * dot.chroma;
+            for (const [color, side] of [[channelColors[0], 1], [channelColors[1], -1]]) {
+                dotCtx.fillStyle = color;
+                dotCtx.beginPath();
+                dotCtx.arc(dot.x + dx * side, dot.y + dy * side, DOT_RADIUS, 0, Math.PI * 2);
+                dotCtx.fill();
+            }
+        }
+
+        dotCtx.globalAlpha = alpha;
+        dotCtx.fillStyle = dotColor;
         dotCtx.beginPath();
         dotCtx.arc(dot.x, dot.y, DOT_RADIUS, 0, Math.PI * 2);
         dotCtx.fill();

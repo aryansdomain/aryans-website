@@ -5,6 +5,10 @@ const FIRST_START_TIME = 3000;  // ms   time ring takes to speed up the first ti
 const        START_TIME = 1200; // ms   time ring takes to speed up
 const         STOP_TIME = 800;  // ms   time ring takes to slow down
 
+const SIDE_TURN_MIN_TIME = 600; // ms   time ring takes to turn a box to the side when it's already close
+const SIDE_TURN_MAX_TIME = 600; // ms   time ring takes to turn a box to the side from half a turn away
+const SIDE_TURN_EASE = 4;       //      how hard the turn eases out
+
 const CLOCKWISE = true; //      which way the ring turns
 const LINE_WIDTH = 1;   // px   width of the ring's circle, keep the same as style.css
 
@@ -47,11 +51,42 @@ const baseSpeed = 2 * Math.PI / (LAP_TIME / 1000) * (CLOCKWISE ? 1 : -1); // rad
 const ring = {
     angle: 0,
     speed: 0,
-    transition: null // change between speeds
+    transition: null, // change between speeds
+    turn: null        // turn to an exact angle and stop there
 };
+
+// turn from current angle and speed to a stop
+function turnTo(toAngle, time) {
+    ring.transition = null;
+    ring.turn = {
+        fromAngle: ring.angle,
+        toAngle: toAngle,
+        elapsed: 0,
+        duration: time / 1000
+    };
+}
+
+// step a turn
+function updateTurn(dt) {
+    const t = ring.turn;
+    t.elapsed = Math.min(t.duration, t.elapsed + dt);
+    const s = t.elapsed / t.duration;
+
+    // ease out
+    const distance = t.toAngle - t.fromAngle;
+    ring.angle = t.fromAngle + distance * (1 - Math.pow(1 - s, SIDE_TURN_EASE));
+    ring.speed = distance * SIDE_TURN_EASE * Math.pow(1 - s, SIDE_TURN_EASE - 1) / t.duration;
+
+    if (s === 1) {
+        ring.angle = t.toAngle;
+        ring.speed = 0;
+        ring.turn = null;
+    }
+}
 
 // ease from current speed to targetSpeed
 function changeSpeed(targetSpeed, time) {
+    ring.turn = null;
     ring.transition = {
         fromSpeed: ring.speed,
         toSpeed: targetSpeed,
@@ -63,6 +98,11 @@ function changeSpeed(targetSpeed, time) {
 
 // turn ring
 function updateRing(dt) {
+    if (ring.turn !== null) {
+        updateTurn(dt);
+        return;
+    }
+
     const t = ring.transition;
     if (t === null) {
         ring.angle += ring.speed * dt;
@@ -86,6 +126,7 @@ function updateRing(dt) {
 
 // where the ring will stop if stopped now
 function getPredictedStopAngle() {
+    if (ring.turn !== null) return ring.turn.toAngle;
     const t = ring.transition;
     if (t !== null && t.toSpeed === 0) return t.startAngle + t.duration * t.fromSpeed / 2;
     return ring.angle + ring.speed * (STOP_TIME / 1000) / 2;
@@ -139,6 +180,29 @@ function startRing() {
 function stop() {
     changeSpeed(0, STOP_TIME);
 }
+// keep turning until box is at the rightmost/leftmost side
+function turnToSide(box) {
+    const i = Array.prototype.indexOf.call(boxes, box);
+    const direction = CLOCKWISE ? 1 : -1;
+    const sideAngle = boxAngle(i, 0); // box's angle when the ring is at 0
+
+    // how far to turn until the box is at a side
+    let distance = (((direction * -(sideAngle + ring.angle)) % Math.PI) + Math.PI) % Math.PI;
+    let time = turnTime(distance);
+
+    // too close to stop from current speed without going past and back, go to the other side
+    if (Math.abs(ring.speed) * time / 1000 > SIDE_TURN_EASE * distance) {
+        distance += Math.PI;
+        time = turnTime(distance);
+    }
+    turnTo(ring.angle + direction * distance, time);
+}
+
+// longer turns take longer
+function turnTime(distance) {
+    return SIDE_TURN_MIN_TIME + (SIDE_TURN_MAX_TIME - SIDE_TURN_MIN_TIME) * Math.min(1, distance / Math.PI);
+}
+
 // speed up to normal speed
 function start() {
     changeSpeed(baseSpeed, START_TIME);
@@ -160,7 +224,7 @@ function getRingSpeed() {
 
 // whether stopping has finished
 function isRingStopped() {
-    return ring.speed === 0 && ring.transition === null;
+    return ring.speed === 0 && ring.transition === null && ring.turn === null;
 }
 
 window.addEventListener("resize", measureRing);

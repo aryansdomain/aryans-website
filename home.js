@@ -1,10 +1,11 @@
 // ------------------------ SETTINGS ------------------------
 
-const CAMERA_TIME  = 500;  // ms   time camera takes to move to or from a focused box
+const CAMERA_TIME = 500;  // ms   time camera takes to move to or from a focused box
 
-const SUBBOX_SCALE = 0.8;   //      size of subboxes compared to their box
-const SUBBOX_GAP = 24;      // px   space between a box and its subboxes, and between subboxes
-const SUBBOXES_PER_ROW = 3; //      overflow
+const SUBBOX_SCALE = 0.8;    //      size of subboxes compared to their box
+const SUBBOX_GAP = 24;       // px   space between subboxes
+const FIRST_SUBBOX_GAP = 56; // px  space between a box and its first subbox
+const SUBBOXES_PER_ROW = 1;  //      overflow
 
 const NAME_SPACE = 80;        // px   space at top for name (same as --name-space in style.css)
 const CAMERA_PADDING = 32;    // px   space between focused group and edges of screen
@@ -70,7 +71,8 @@ function layoutSubboxes(box) {
         const row = subboxes.slice(start, start + SUBBOXES_PER_ROW);
         const depth = Math.max.apply(null, row.map(function (subbox) { return reach(subbox, out); }));
         const width = Math.max.apply(null, row.map(function (subbox) { return reach(subbox, along); }));
-        const d = edge + SUBBOX_GAP + depth; // distance out from box's center
+        const gap = start === 0 ? FIRST_SUBBOX_GAP : SUBBOX_GAP;
+        const d = edge + gap + depth;        // distance out from box's center
         const s = 2 * width + SUBBOX_GAP;    // space between subboxes
 
         row.forEach(function (subbox, i) {
@@ -188,11 +190,12 @@ function stepCamera(dt) {
     if (u === 1) cameraMove = null;
 }
 
+// turn the box to the side of the ring, extending subboxes
 function focus(box) {
     focusedBox = box;
-    layout = layoutSubboxes(box);
+    turnToSide(box);
+    layout = layoutSubboxes(box); // laid out from where the box will stop
 
-    stop();
     moveCamera(getCameraTarget(layout.bounds, layout.box), EXTEND_TIME);
     spawnSubcats(box, layout);
     phase = "focusing";
@@ -229,9 +232,9 @@ function homeFrame(now) {
     stepCamera(dt);
     updateLiquid(dt);
 
-    // phases end once the subboxes finish moving
+    // phases end once the ring stops and the subboxes finish moving
     if (phase === "focusing") {
-        if (isStable()) phase = "focused";
+        if (isStable() && isRingStopped()) phase = "focused";
     } else if (phase === "unfocusing") {
         if (isStable()) {
             focusedBox = null;
@@ -240,7 +243,8 @@ function homeFrame(now) {
         }
     }
 
-    if (phase === "focusing" || phase === "unfocusing" || cameraMove !== null) requestAnimationFrame(homeFrame);
+    // keep going while focused
+    if (phase === "focusing" || phase === "focused" || phase === "unfocusing" || cameraMove !== null) requestAnimationFrame(homeFrame);
     else homeLooping = false;
 }
 
