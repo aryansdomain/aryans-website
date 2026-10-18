@@ -1,9 +1,10 @@
 // ------------------------ SETTINGS ------------------------
 
-const LAP_TIME = 15000;        // ms   time ring takes to turn all the way around, at starting speed
-const FIRST_START_TIME = 3000; // ms   time ring takes to speed up the first time
+const LAP_TIME = 15000;         // ms   time ring takes to turn all the way around, at starting speed
+const FIRST_START_TIME = 3000;  // ms   time ring takes to speed up the first time
 const        START_TIME = 1200; // ms   time ring takes to speed up
 const         STOP_TIME = 800;  // ms   time ring takes to slow down
+
 const CLOCKWISE = true; //      which way the ring turns
 const LINE_WIDTH = 1;   // px   width of the ring's circle, keep the same as style.css
 

@@ -1,7 +1,8 @@
 // ------------------------ SETTINGS ------------------------
 
-const DOT_COUNT = 100;       //        number of dots wandering the background
+const DOT_COUNT = 800;       //        number of dots wandering the background
 const DOT_RADIUS = 1.5;      // px
+const DOT_MIN_ALPHA = 0.15;  // 0-1    faintest a dot can be
 
 // APPEAR
 const APPEAR_START = 0.1;    // ratio  fraction of TOPBAR_TIME when the first dot appears
@@ -15,6 +16,12 @@ const WANDER_TURN = 1.2;     // rad/s  fastest dots turn while wandering
 const WANDER_JITTER = 4;     //        how often a dot changes which way it's turning, higher -> wigglier
 const EDGE_MARGIN = 60;      // px     how close to edges the dots get before turning back
 const EDGE_STEER = 3;        //        how hard dots turn back from edges
+const EDGE_TOLERANCE = 40;   // px     how far past EDGE_MARGIN a dot may go before turning
+
+const CURSOR_MARGIN = 80;    // px     how close to the cursor dots get before turning away
+const CURSOR_STEER = 200;     //        how hard dots turn away from the cursor
+const CURSOR_SPEEDUP = 5;    // ratio  how much faster than wandering dots are when at the cursor
+const CURSOR_CALM = 600;     // ms     how quickly fleeing dots slow back down to wandering
 
 
 
@@ -29,6 +36,7 @@ const dots = [];
 let dotWidth = 0;
 let dotHeight = 0;
 let dotColor = null;
+let cursor = null;
 
 // resize canvas to window
 function resizeDots() {
@@ -48,6 +56,11 @@ function readDotColor() {
 // a random ratio around 1, up to amount above or below
 function vary(amount) {
     return 1 + (Math.random() * 2 - 1) * amount;
+}
+
+// how far past EDGE_MARGIN a dot goes before turning back
+function randomReach() {
+    return (Math.random() * 1.5 - 0.5) * EDGE_TOLERANCE;
 }
 
 // signed smallest angle from a to b
@@ -71,8 +84,12 @@ function showDots() {
             x: EDGE_MARGIN + Math.random() * Math.max(0, dotWidth  - 2 * EDGE_MARGIN),
             y: top         + Math.random() * Math.max(0, dotHeight - top - EDGE_MARGIN),
             wanderSpeed: WANDER_SPEED * vary(WANDER_VARIETY),
+            alpha: DOT_MIN_ALPHA + (1 - DOT_MIN_ALPHA) * Math.random(),
             heading: Math.random() * Math.PI * 2, // direction it's heading
-            turn: 0 // how fast direction is changing
+            turn: 0, // how fast direction is changing
+            reach: randomReach(), // how far past EDGE_MARGIN it goes before turning back this time
+            turningBack: false, // is it turning back from an edge
+            boost: 0 // extra speed from fleeing the cursor, as a ratio of wander speed
         });
     }
     startDotLoop();
@@ -90,20 +107,44 @@ function moveDot(dot, dt) {
 
     // near the edges, turn back to the middle, and stay away from name
     const top = NAME_SPACE;
+    const margin = EDGE_MARGIN - dot.reach;
     const nearEdge = Math.max(
-        (EDGE_MARGIN - dot.x) / EDGE_MARGIN,
-        (dot.x - (dotWidth - EDGE_MARGIN)) / EDGE_MARGIN,
-        (top + EDGE_MARGIN - dot.y) / EDGE_MARGIN,
-        (dot.y - (dotHeight - EDGE_MARGIN)) / EDGE_MARGIN
+        (margin - dot.x) / EDGE_MARGIN,
+        (dot.x - (dotWidth - margin)) / EDGE_MARGIN,
+        (top + margin - dot.y) / EDGE_MARGIN,
+        (dot.y - (dotHeight - margin)) / EDGE_MARGIN
     );
     if (nearEdge > 0) {
         const toMiddle = Math.atan2(dotHeight / 2 + top / 2 - dot.y, dotWidth / 2 - dot.x);
-        const steer = Math.min(1, EDGE_STEER * Math.min(1, nearEdge) * seconds);
-        dot.heading += angleBetween(dot.heading, toMiddle) * steer;
+        steerToward(dot, toMiddle, nearEdge, EDGE_STEER, seconds);
+        dot.turningBack = true;
+    } else if (dot.turningBack) {
+        // back inside, pick a new distance for next time
+        dot.turningBack = false;
+        dot.reach = randomReach();
     }
 
-    dot.x += Math.cos(dot.heading) * dot.wanderSpeed * seconds;
-    dot.y += Math.sin(dot.heading) * dot.wanderSpeed * seconds;
+    // near the cursor, turn away from it and speed up, calm down after
+    dot.boost *= Math.exp(-dt / CURSOR_CALM);
+    if (cursor !== null) {
+        const distance = Math.hypot(dot.x - cursor.x, dot.y - cursor.y);
+        const nearCursor = (CURSOR_MARGIN - distance) / CURSOR_MARGIN;
+        if (nearCursor > 0) {
+            const awayFromCursor = Math.atan2(dot.y - cursor.y, dot.x - cursor.x);
+            steerToward(dot, awayFromCursor, nearCursor, CURSOR_STEER, seconds);
+            dot.boost = Math.max(dot.boost, CURSOR_SPEEDUP * nearCursor);
+        }
+    }
+
+    const speed = dot.wanderSpeed * (1 + dot.boost);
+    dot.x += Math.cos(dot.heading) * speed * seconds;
+    dot.y += Math.sin(dot.heading) * speed * seconds;
+}
+
+// turn heading toward angle
+function steerToward(dot, angle, closeness, strength, seconds) {
+    const steer = Math.min(1, strength * Math.min(1, closeness) * seconds);
+    dot.heading += angleBetween(dot.heading, angle) * steer;
 }
 
 // draw dots, fading in after they appear
@@ -114,7 +155,7 @@ function drawDots(now) {
         const shown = clamp(0, 1, (now - dot.appearAt) / DOT_FADE_IN);
         if (shown <= 0) continue;
 
-        dotCtx.globalAlpha = shown;
+        dotCtx.globalAlpha = shown * dot.alpha;
         dotCtx.beginPath();
         dotCtx.arc(dot.x, dot.y, DOT_RADIUS, 0, Math.PI * 2);
         dotCtx.fill();
@@ -153,5 +194,13 @@ window.addEventListener("resize", function () {
         dot.y = clamp(0, dotHeight, dot.y);
     }
 });
+// track cursor, forget when it leaves the page
+window.addEventListener("pointermove", function (event) {
+    cursor = { x: event.clientX, y: event.clientY };
+});
+document.documentElement.addEventListener("pointerleave", function () {
+    cursor = null;
+});
+
 readDotColor();
 resizeDots();
