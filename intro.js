@@ -3,8 +3,10 @@
 const SEEN_INTRO_KEY = "intro_seen";
 
 // POINTS
-const POINTS_PER_PIXEL = 0.002; // pts/px   points per pixel (2500 on a 1990x992 window)
-const POINT_RADIUS = 1.8;        // px
+const POINTS_PER_PIXEL = 0.002;           // pts/px   points per pixel (2500 on a 1990x992 window)
+const POINT_RADIUS = 0.0013;              // ratio    radius of points (1.8px on a 1990x992 window)
+const REFERENCE_SCREEN_AREA = 1990 * 992; // px^2     screen the point settings were tuned on
+const POINT_MAKEUP = 0.5;                 // 0-1      how much smaller points are made up for with more points
 
 // TEXT
 const TEXT = "Aryan Singhal";
@@ -41,6 +43,7 @@ const FORM_TIME = 2000; // ms   time points take to travel to the text
 // 5. TOPBAR
 const TOPBAR_TIME = 900;           // ms      time text takes to move up into the topbar
 const TOPBAR_TEXT_WIDTH = 0.12;    // ratio   how much of the width of the screen the text fills in the topbar
+const TOPBAR_MIN_TEXT_WIDTH = 130; // px      smallest topbar text can be
 const TOPBAR_Y = 40;               // px      how far the middle of the text is from the top of the screen
 const TOPBAR_POINTS_PER_PIXEL = 7; // pts/px  points per pixel of topbar letters
 const TOPBAR_POINT_RADIUS = 0.25;  // px      size of points in the topbar text
@@ -245,7 +248,10 @@ function resize() {
 
 // set point positions
 const points = [];
-const pointCount = Math.max(1, Math.round(POINTS_PER_PIXEL * window.innerWidth * window.innerHeight)); // set once page loads
+// smaller screens have smaller points, so add more
+const screenArea = window.innerWidth * window.innerHeight;
+const radiusShrink = Math.sqrt(screenArea / REFERENCE_SCREEN_AREA); // point radius compared to on the reference screen
+const pointCount = Math.max(1, Math.round(POINTS_PER_PIXEL * screenArea / Math.pow(radiusShrink, 2 * POINT_MAKEUP))); // set once page loads
 for (let i = 0; i < pointCount; i++) {
     // bursting: random direction, random radius
     const direction = randomDirection();
@@ -264,9 +270,10 @@ for (let i = 0; i < pointCount; i++) {
 
 // draw points onto target
 function drawPoints(target) {
+    const screenSize = Math.sqrt(width * height);
+
     // glow
     if (POINT_GLOW_SIZE > 0 && POINT_GLOW_STRENGTH > 0) {
-        const screenSize = Math.sqrt(width * height);
         target.globalCompositeOperation = "lighter";
         target.globalAlpha = POINT_GLOW_STRENGTH;
         const splitting = introStrength > 0 && LENS_OFFSET > 0;
@@ -303,7 +310,7 @@ function drawPoints(target) {
 
             // scale with windo
             const depthScale = clamp(0.3, 4, camera.homeDistance / point.depth)
-            const radius = POINT_RADIUS * depthScale;
+            const radius = POINT_RADIUS * screenSize * depthScale;
             target.moveTo(point.x + radius, point.y);
             target.arc(point.x, point.y, radius, 0, Math.PI * 2);
         }
@@ -321,7 +328,7 @@ function drawPoints(target) {
             if (!point.visible) continue;
 
             const depthScale = clamp(0.3, 4, camera.homeDistance / point.depth)
-            const radius = POINT_RADIUS * depthScale;
+            const radius = POINT_RADIUS * screenSize * depthScale;
             const split = side === 0 ? { x: 0, y: 0 } : lensSplit(point.x, point.y, introStrength);
             const x = point.x + split.x * side;
             const y = point.y + split.y * side;
@@ -484,7 +491,7 @@ function findSettleTime() {
 let capture = null;
 function capturePoints() {
     const dpr = window.devicePixelRatio || 1;
-    const pad = Math.max(POINT_GLOW_SIZE * Math.sqrt(width * height), POINT_RADIUS) + 2;
+    const pad = Math.max(POINT_GLOW_SIZE, POINT_RADIUS) * Math.sqrt(width * height) + 2;
 
     // find the box the points fill
     let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
@@ -529,9 +536,14 @@ function capturePoints() {
     points.length = 0;
 }
 
+// width of topvar text
+function topbarTextWidth() {
+    return Math.max(width * TOPBAR_TEXT_WIDTH, TOPBAR_MIN_TEXT_WIDTH);
+}
+
 // draw the points at topbar size so text is sharp
 function drawTopbarImage() {
-    const textWidth = width * TOPBAR_TEXT_WIDTH;
+    const textWidth = topbarTextWidth();
 
     // enough points to fill all letters at this size
     const letterPixelsHere = letterPixels.length * Math.pow(letterPixelSize * textWidth, 2);
@@ -592,7 +604,7 @@ function namePlace(now) {
 
     return {
         eased: eased,
-        textWidth: width * (TEXT_SCREEN_WIDTH + (TOPBAR_TEXT_WIDTH - TEXT_SCREEN_WIDTH) * eased),
+        textWidth: width * TEXT_SCREEN_WIDTH + (topbarTextWidth() - width * TEXT_SCREEN_WIDTH) * eased,
         middleY: height / 2 + (TOPBAR_Y - height / 2) * eased
     };
 }
@@ -1062,7 +1074,7 @@ const nameButton = document.getElementById("name");
 function placeNameButton() {
     if (topbarStart === null) return; // not in topbar yet
 
-    const textWidth = width * TOPBAR_TEXT_WIDTH;
+    const textWidth = topbarTextWidth();
     nameButton.style.left   = width / 2 + capture.left  * textWidth + "px";
     nameButton.style.top    = TOPBAR_Y  + capture.top   * textWidth + "px";
     nameButton.style.width  =            capture.width  * textWidth + "px";

@@ -2,10 +2,10 @@
 
 const CAMERA_TIME = 500;  // ms   time camera takes to move to or from a focused box
 
-const SUBBOX_SCALE = 0.8;    //      size of subboxes compared to their box
-const SUBBOX_GAP = 24;       // px   space between subboxes
-const FIRST_SUBBOX_GAP = 56; // px  space between a box and its first subbox
-const SUBBOXES_PER_ROW = 1;  //      overflow
+const SUBBOX_SCALE = 0.8;        //      size of subboxes compared to their box
+const SUBBOX_GAP = 24;           // px   space between subboxes
+const FIRST_SUBBOX_GAP = 56;     // px  space between a box and its first subbox
+const MIN_FIRST_SUBBOX_GAP = 16; // px  smallest that space shrinks to in emergencies (longest subbox is still too close to the screen's edge)
 
 const NAME_SPACE = 80;        // px   space at top for name (same as --name-space in style.css)
 const CAMERA_PADDING = 32;    // px   space between focused group and edges of screen
@@ -52,12 +52,24 @@ function reach(size, dir) {
     return Math.abs(dir.x) * size.width / 2 + Math.abs(dir.y) * size.height / 2;
 }
 
+// how far from point until CAMERA_PADDING from the edge of the screen
+function spaceToEdge(point, dir) {
+    const left = CAMERA_PADDING, right  = home.clientWidth  - CAMERA_PADDING;
+    const top  = NAME_SPACE + CAMERA_PADDING, bottom = home.clientHeight - CAMERA_PADDING;
+
+    let space = Infinity;
+    if (dir.x > 0) space = Math.min(space, (right  - point.x) / dir.x);
+    if (dir.x < 0) space = Math.min(space, (left   - point.x) / dir.x);
+    if (dir.y > 0) space = Math.min(space, (bottom - point.y) / dir.y);
+    if (dir.y < 0) space = Math.min(space, (top    - point.y) / dir.y);
+    return space;
+}
+
 // compute position of subboxes when ring stops
 function layoutSubboxes(box) {
     const angle  = getBoxAngle(box, true);
     const center = getBoxCenter(box, true);
 
-    // TODO: better names for out and along
     const out   = { x:  Math.cos(angle), y: Math.sin(angle) }; // away from the ring's center
     const along = { x: -Math.sin(angle), y: Math.cos(angle) }; // along the ring
     const boxSize = { width: box.offsetWidth, height: box.offsetHeight };
@@ -66,24 +78,42 @@ function layoutSubboxes(box) {
         return Object.assign(subcat, measureSubbox(box, subcat.label));
     });
 
-    let edge = reach(boxSize, out); // how far the last row reaches
-    for (let start = 0; start < subboxes.length; start += SUBBOXES_PER_ROW) {
-        const row = subboxes.slice(start, start + SUBBOXES_PER_ROW);
-        const depth = Math.max.apply(null, row.map(function (subbox) { return reach(subbox, out); }));
-        const width = Math.max.apply(null, row.map(function (subbox) { return reach(subbox, along); }));
-        const gap = start === 0 ? FIRST_SUBBOX_GAP : SUBBOX_GAP;
-        const d = edge + gap + depth;        // distance out from box's center
-        const s = 2 * width + SUBBOX_GAP;    // space between subboxes
+    // overflow: start a new row when subboxes go too far
+    const room = spaceToEdge(center, out);
 
-        row.forEach(function (subbox, i) {
-            const side = (i - (row.length - 1) / 2) * s;
+    // shrink the first gap if the longest subbox is too close to the edge
+    const longest = Math.max.apply(null, subboxes.map(function (subbox) { return reach(subbox, out); }));
+    const firstGap = Math.max(MIN_FIRST_SUBBOX_GAP, Math.min(FIRST_SUBBOX_GAP, room - reach(boxSize, out) - 2 * longest));
+
+    const rows = [[]];
+    let edge = reach(boxSize, out); // how far the current row reaches
+    subboxes.forEach(function (subbox) {
+        const depth = reach(subbox, out);
+        let row = rows[rows.length - 1];
+        if (row.length > 0 && edge + SUBBOX_GAP + 2 * depth > room) {
+            row = [];
+            rows.push(row);
+            edge = reach(boxSize, out);
+        }
+
+        const gap = row.length === 0 ? firstGap : SUBBOX_GAP;
+        subbox.distance = edge + gap + depth; // distance out from box's center
+        edge = subbox.distance + depth;
+        row.push(subbox);
+    });
+
+    // stack rows along ring
+    const width = Math.max.apply(null, subboxes.map(function (subbox) { return reach(subbox, along); }));
+    const s = 2 * width + SUBBOX_GAP; // space between rows
+    rows.forEach(function (row, i) {
+        const side = (i - (rows.length - 1) / 2) * s;
+        row.forEach(function (subbox) {
             subbox.center = {
-                x: center.x + d * out.x + side * along.x,
-                y: center.y + d * out.y + side * along.y
+                x: center.x + subbox.distance * out.x + side * along.x,
+                y: center.y + subbox.distance * out.y + side * along.y
             };
         });
-        edge = d + depth;
-    }
+    });
 
     const boxRect = { center: center, width: boxSize.width, height: boxSize.height };
     return {

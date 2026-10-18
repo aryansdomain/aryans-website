@@ -140,10 +140,14 @@ body {
     isolation: isolate;
     transition: box-shadow 300ms ease;
 }
-.category:hover,
 .category:focus-visible {
     outline: none;
     box-shadow: 0 0 12px var(--glow);
+}
+@media (hover: hover) {
+    .category:hover {
+        box-shadow: 0 0 12px var(--glow);
+    }
 }
 
 /* border of box and background */
@@ -159,9 +163,13 @@ body {
 #home.shown .category::before {
     --drawn: 360deg;
 }
-.category:hover::before,
 .category:focus-visible::before {
     border-color: var(--text);
+}
+@media (hover: hover) {
+    .category:hover::before {
+        border-color: var(--text);
+    }
 }
 
 /* text of box */
