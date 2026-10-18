@@ -24,8 +24,7 @@ const CURSOR_SPEEDUP = 5; // ratio   how much faster than wandering dots are whe
 const CURSOR_CALM = 600;  // ms      how quickly fleeing dots slow back down to wandering
 
 // CHROMATIC ABERRATION
-const CHROMA_OFFSET = 2; // px    how far colors split from a dot at a boundary
-const CHROMA_ALPHA = 1;  // 0-1   how strong the color splits are, compared to the dot
+const CHROMA_OFFSET = 2; // px    how far colors split from a dot
 const CHROMA_EASE = 150; // ms    how quickly color split follows the dot
 
 
@@ -41,7 +40,8 @@ const dots = [];
 let dotWidth = 0;
 let dotHeight = 0;
 let dotColor = null;
-let channelColors = null; // the two sides of the chromatic aberration
+let dotDarkness = 1; // how solid --dot is
+let dotBackground = null;
 let cursor = null;
 
 // resize canvas to window
@@ -58,7 +58,9 @@ function resizeDots() {
 function readDotColor() {
     const style = getComputedStyle(document.documentElement);
     dotColor = style.getPropertyValue("--dot").trim();
-    channelColors = [style.getPropertyValue("--channel-1").trim(), style.getPropertyValue("--channel-2").trim()];
+    dotBackground = style.getPropertyValue("--background").trim();
+    const parts = dotColor.match(/[\d.]+/g);
+    dotDarkness = parts && parts.length === 4 ? parseFloat(parts[3]) : 1;
 }
 
 // a random ratio around 1, up to amount above or below
@@ -134,8 +136,8 @@ function moveDot(dot, dt) {
     }
 
     // color channels split
-    let chroma = (NAME_SPACE + EDGE_MARGIN - dot.y) / EDGE_MARGIN;
-    let chromaAngle = toMiddle;
+    let chroma      = lensAmount(dot.x, dot.y) * LENS_OFFSET;
+    let chromaAngle = lensAngle (dot.x, dot.y);
 
     // near the cursor, turn away from it and speed up, calm down after
     dot.boost *= Math.exp(-dt / CURSOR_CALM);
@@ -147,9 +149,9 @@ function moveDot(dot, dt) {
             steerToward(dot, awayFromCursor, nearCursor, CURSOR_STEER, seconds);
             dot.boost = Math.max(dot.boost, CURSOR_SPEEDUP * nearCursor);
 
-            // cursor is the closer boundary
-            if (nearCursor > chroma) {
-                chroma = nearCursor;
+            // cursor splits it more
+            if (Math.min(1, nearCursor) * CHROMA_OFFSET > chroma) {
+                chroma = Math.min(1, nearCursor) * CHROMA_OFFSET;
                 chromaAngle = awayFromCursor;
             }
         }
@@ -157,7 +159,7 @@ function moveDot(dot, dt) {
 
     // ease towarda new split
     const follow = 1 - Math.exp(-dt / CHROMA_EASE);
-    dot.chroma += (clamp(0, 1, chroma) - dot.chroma) * follow;
+    dot.chroma += (chroma - dot.chroma) * follow;
     if (chroma > 0) dot.chromaAngle = chromaAngle;
 
     const speed = dot.wanderSpeed * (1 + dot.boost);
@@ -173,32 +175,40 @@ function steerToward(dot, angle, closeness, strength, seconds) {
 
 // draw dots, fading in after they appear
 function drawDots(now) {
-    dotCtx.clearRect(0, 0, dotWidth, dotHeight);
+    dotCtx.globalAlpha = 1;
+    dotCtx.globalCompositeOperation = "source-over";
+    dotCtx.fillStyle = dotBackground;
+    dotCtx.fillRect(0, 0, dotWidth, dotHeight);
+
     for (const dot of dots) {
         const shown = clamp(0, 1, (now - dot.appearAt) / DOT_FADE_IN);
         if (shown <= 0) continue;
         const alpha = shown * dot.alpha;
 
-        // color channels on either side, split away from the closest boundary
-        if (dot.chroma > 0.01) {
-            const offset = CHROMA_OFFSET * dot.chroma;
-            const dx = Math.cos(dot.chromaAngle) * offset;
-            const dy = Math.sin(dot.chromaAngle) * offset;
-            dotCtx.globalAlpha = alpha * CHROMA_ALPHA * dot.chroma;
-            for (const [color, side] of [[channelColors[0], 1], [channelColors[1], -1]]) {
-                dotCtx.fillStyle = color;
-                dotCtx.beginPath();
-                dotCtx.arc(dot.x + dx * side, dot.y + dy * side, DOT_RADIUS, 0, Math.PI * 2);
-                dotCtx.fill();
-            }
+        // not split
+        if (dot.chroma < 0.01) {
+            dotCtx.globalCompositeOperation = "source-over";
+            dotCtx.globalAlpha = alpha;
+            dotCtx.fillStyle = dotColor;
+            dotCtx.beginPath();
+            dotCtx.arc(dot.x, dot.y, DOT_RADIUS, 0, Math.PI * 2);
+            dotCtx.fill();
+            continue;
         }
 
-        dotCtx.globalAlpha = alpha;
-        dotCtx.fillStyle = dotColor;
-        dotCtx.beginPath();
-        dotCtx.arc(dot.x, dot.y, DOT_RADIUS, 0, Math.PI * 2);
-        dotCtx.fill();
+        // chromatic aberration
+        const dx = Math.cos(dot.chromaAngle) * dot.chroma;
+        const dy = Math.sin(dot.chromaAngle) * dot.chroma;
+        dotCtx.globalCompositeOperation = "multiply";
+        dotCtx.globalAlpha = alpha * dotDarkness;
+        for (const [color, side] of [["#0ff", 1], ["#f0f", 0], ["#ff0", -1]]) {
+            dotCtx.fillStyle = color;
+            dotCtx.beginPath();
+            dotCtx.arc(dot.x + dx * side, dot.y + dy * side, DOT_RADIUS, 0, Math.PI * 2);
+            dotCtx.fill();
+        }
     }
+    dotCtx.globalCompositeOperation = "source-over";
     dotCtx.globalAlpha = 1;
 }
 

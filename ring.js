@@ -10,7 +10,6 @@ const SIDE_TURN_MAX_TIME = 600; // ms   time ring takes to turn a box to the sid
 const SIDE_TURN_EASE = 4;       //      how hard the turn eases out
 
 const CLOCKWISE = true; //      which way the ring turns
-const LINE_WIDTH = 1;   // px   width of the ring's circle, keep the same as style.css
 
 
 
@@ -25,12 +24,11 @@ function measureRing() {
     center.y = ringEl.offsetTop  + radius;
 }
 
-// point on ring's line at an angle
+// point on the ring at an angle
 function pointOnRing(angle) {
-    const lineRadius = radius - LINE_WIDTH / 2;
     return {
-        x: center.x + lineRadius * Math.cos(angle),
-        y: center.y + lineRadius * Math.sin(angle)
+        x: center.x + radius * Math.cos(angle),
+        y: center.y + radius * Math.sin(angle)
     };
 }
 

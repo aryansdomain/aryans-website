@@ -28,6 +28,10 @@ const liquidLabels    = document.getElementById("liquid-labels");
 liquidShapes.setAttribute("filter", "url(#goo)");
 const gooBlur = document.querySelector("#goo feGaussianBlur");
 
+// chromatic aberration toward screen edges
+const splitRed  = smoothOffset(document.querySelector("#goo .split-red") ) 
+const splitBlue = smoothOffset(document.querySelector("#goo .split-blue"));
+
 const boxBorderAlpha = (function () {
     const parts = getComputedStyle(document.documentElement).getPropertyValue("--box-border").match(/[\d.]+/g);
     return parts && parts.length === 4 ? parseFloat(parts[3]) : 1;
@@ -263,6 +267,7 @@ function shapeBlob(blob, origin, from, r, rectUntil, blobFrom) {
 function drawLiquid(origin) {
     const gooiness = Math.max.apply(null, blobs.map(function (blob) { return blob.gooiness; }));
     gooBlur.setAttribute("stdDeviation", Math.max(0.01, GOO_BLUR * gooiness));
+    splitByLens(origin);
 
     // parent, following the ring
     setAttributes(liquidParent.shape, {
@@ -300,7 +305,26 @@ function smoothstep(u) {
     return u * u * (3 - 2 * u);
 }
 
+// split the border
+function splitByLens(origin) {
+    let split = { x: 0, y: 0 };
+    [origin].concat(blobs).forEach(function (spot) {
+        const x = spot.x * worldCamera.scale + worldCamera.x; // on the screen
+        const y = spot.y * worldCamera.scale + worldCamera.y;
+        const here = lensSplit(x, y, 1);
+        if (Math.hypot(here.x, here.y) > Math.hypot(split.x, split.y)) split = here;
+    });
+    setSplit(split.x, split.y);
+}
+
+// red and blue movement
+function setSplit(dx, dy) {
+    splitRed ( dx,  dy);
+    splitBlue(-dx, -dy);
+}
+
 function clearBlobs() {
+    setSplit(0, 0);
     if (liquidParent !== null) liquidParent.box.classList.remove("liquid"); // draw box again
     blobs = [];
     liquidParent = null;

@@ -3,7 +3,6 @@
     /* main page */
     --background: #FAFAFA;
     --text: #111;
-    --ring: rgba(0, 0, 0, 0);
     --box-border: rgba(0, 0, 0, 0.65);
     --glow: rgba(0, 0, 0, 0.25);
     --dot: rgba(0, 0, 0, 0.55);
@@ -45,12 +44,7 @@ body {
     height: 100dvh;
     overflow: hidden;
 
-    /* chromatic aberration toward edges */
-    background: var(--background);
-    filter: url(#screen-lens);
-
-    /* draw when shown: circle and boxes together, then text */
-    --ring-draw: 1200ms;
+    /* draw when shown: boxes, then text */
     --box-draw: 800ms;
     --text-draw: 600ms;
 
@@ -69,19 +63,7 @@ body {
     pointer-events: none;
 }
 
-/* fade out anything the camera moves under the name */
-#name-fade {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: var(--name-space);
-    z-index: 6;
-    pointer-events: none;
-    background: linear-gradient(var(--background) 70%, transparent);
-}
-
-/* progress on circle being drawn */
+/* progress on a border being drawn */
 @property --drawn {
     syntax: "<angle>";
     inherits: false;
@@ -123,13 +105,6 @@ body {
     flood-color: var(--background);
 }
 
-/* past edges of screen, for the chromatic aberration in lens.js */
-#screen-lens .lens-background {
-    flood-color: var(--background);
-}
-#intro-lens .lens-intro-background {
-    flood-color: var(--intro-background);
-}
 
 /* chromatic abberation */
 #liquid-layer .channel-1 {
@@ -145,18 +120,6 @@ body {
     position: relative;
     width:  calc(var(--radius) * 2);
     height: calc(var(--radius) * 2);
-}
-.ring::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border: 1px solid var(--ring);
-    border-radius: 50%;
-    mask: conic-gradient(#000 var(--drawn), transparent 0);
-    transition: --drawn var(--ring-draw) ease-in-out;
-}
-#home.shown .ring::before {
-    --drawn: 360deg;
 }
 
 /* each box */

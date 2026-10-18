@@ -269,31 +269,68 @@ function drawPoints(target) {
         const screenSize = Math.sqrt(width * height);
         target.globalCompositeOperation = "lighter";
         target.globalAlpha = POINT_GLOW_STRENGTH;
+        const splitting = introStrength > 0 && LENS_OFFSET > 0;
         for (const point of points) {
             if (!point.visible) continue;
 
             // scale with window size
             const depthScale = clamp(0.3, 4, camera.homeDistance / point.depth)
             const size = POINT_GLOW_SIZE * screenSize * depthScale;
-            target.drawImage(glowSprite, point.x - size, point.y - size, size * 2, size * 2);
+            if (!splitting) {
+                target.drawImage(glowSprite, point.x - size, point.y - size, size * 2, size * 2);
+                continue;
+            }
+
+            // chromatic aberration toward the edges
+            const split = lensSplit(point.x, point.y, introStrength);
+            for (let channel = 0; channel < 3; channel++) {
+                const side = 1 - channel; // red 1, green 0, blue -1
+                const x = point.x + split.x * side;
+                const y = point.y + split.y * side;
+                target.drawImage(glowSprites[channel], x - size, y - size, size * 2, size * 2);
+            }
         }
         target.globalCompositeOperation = "source-over";
     }
 
     // draw the points
     target.globalAlpha = 1;
-    target.fillStyle = colors.text;
-    target.beginPath();
-    for (const point of points) {
-        if (!point.visible) continue;
+    if (introStrength <= 0 || LENS_OFFSET <= 0) {
+        target.fillStyle = colors.text;
+        target.beginPath();
+        for (const point of points) {
+            if (!point.visible) continue;
 
-        // scale with windo
-        const depthScale = clamp(0.3, 4, camera.homeDistance / point.depth)
-        const radius = POINT_RADIUS * depthScale;
-        target.moveTo(point.x + radius, point.y);
-        target.arc(point.x, point.y, radius, 0, Math.PI * 2);
+            // scale with windo
+            const depthScale = clamp(0.3, 4, camera.homeDistance / point.depth)
+            const radius = POINT_RADIUS * depthScale;
+            target.moveTo(point.x + radius, point.y);
+            target.arc(point.x, point.y, radius, 0, Math.PI * 2);
+        }
+        target.fill();
+        return;
     }
-    target.fill();
+
+    // chromatic aberration toward the edges
+    target.globalCompositeOperation = "lighter";
+    for (let channel = 0; channel < 3; channel++) {
+        const side = 1 - channel; // red 1, green 0, blue -1
+        target.fillStyle = colors.textChannels[channel];
+        target.beginPath();
+        for (const point of points) {
+            if (!point.visible) continue;
+
+            const depthScale = clamp(0.3, 4, camera.homeDistance / point.depth)
+            const radius = POINT_RADIUS * depthScale;
+            const split = side === 0 ? { x: 0, y: 0 } : lensSplit(point.x, point.y, introStrength);
+            const x = point.x + split.x * side;
+            const y = point.y + split.y * side;
+            target.moveTo(x + radius, y);
+            target.arc(x, y, radius, 0, Math.PI * 2);
+        }
+        target.fill();
+    }
+    target.globalCompositeOperation = "source-over";
 }
 
 // update points
@@ -738,6 +775,16 @@ function drawTrails(burstTime) {
     const levels = [];
     for (let i = 0; i < TRAIL_FADE_STEPS; i++) levels.push(new Path2D());
 
+    // chromatic abberation
+    const splitting = introStrength > 0 && LENS_OFFSET > 0;
+    const splitLevels = [[], []];
+    if (splitting) {
+        for (let i = 0; i < TRAIL_FADE_STEPS; i++) {
+            splitLevels[0].push(new Path2D());
+            splitLevels[1].push(new Path2D());
+        }
+    }
+
     // draw segment from a to b
     function addSegment(a, b, age) {
         const timeLeft = 1 - age / TRAIL_DURATION;
@@ -746,6 +793,14 @@ function drawTrails(burstTime) {
         const level = Math.min(TRAIL_FADE_STEPS - 1, Math.floor(timeLeft * TRAIL_FADE_STEPS));
         levels[level].moveTo(a.x, a.y);
         levels[level].lineTo(b.x, b.y);
+
+        if (splitting) {
+            const split = lensSplit((a.x + b.x) / 2, (a.y + b.y) / 2, introStrength);
+            splitLevels[0][level].moveTo(a.x + split.x, a.y + split.y);
+            splitLevels[0][level].lineTo(b.x + split.x, b.y + split.y);
+            splitLevels[1][level].moveTo(a.x - split.x, a.y - split.y);
+            splitLevels[1][level].lineTo(b.x - split.x, b.y - split.y);
+        }
     }
 
     // add segment to trails
@@ -775,12 +830,26 @@ function drawTrails(burstTime) {
     ctx.globalCompositeOperation = "source-over";
 
     // draw the trail lines
-    ctx.strokeStyle = colors.trail;
     ctx.lineWidth = TRAIL_WIDTH;
-    for (let i = 0; i < TRAIL_FADE_STEPS; i++) {
-        ctx.globalAlpha = TRAIL_ALPHA * (i + 1) / TRAIL_FADE_STEPS;
-        ctx.stroke(levels[i]);
+    if (introStrength <= 0 || LENS_OFFSET <= 0) {
+        ctx.strokeStyle = colors.trail;
+        for (let i = 0; i < TRAIL_FADE_STEPS; i++) {
+            ctx.globalAlpha = TRAIL_ALPHA * (i + 1) / TRAIL_FADE_STEPS;
+            ctx.stroke(levels[i]);
+        }
+        return;
     }
+
+    // chromatic aberration toward the edges
+    ctx.globalCompositeOperation = "lighter";
+    for (let channel = 0; channel < 3; channel++) {
+        ctx.strokeStyle = colors.trailChannels[channel];
+        for (let i = 0; i < TRAIL_FADE_STEPS; i++) {
+            ctx.globalAlpha = TRAIL_ALPHA * (i + 1) / TRAIL_FADE_STEPS;
+            ctx.stroke(channel === 1 ? levels[i] : splitLevels[channel === 0 ? 0 : 1][i]);
+        }
+    }
+    ctx.globalCompositeOperation = "source-over";
 }
 
 // update trails
@@ -805,7 +874,7 @@ function updateTrails(burstTime) {
 }
 
 // glow around points
-function makeGlowSprite() {
+function makeGlowSprite(color) {
     // create sprite
     const size = 64;
     const sprite = document.createElement("canvas");
@@ -815,7 +884,7 @@ function makeGlowSprite() {
     // add color
     const spriteCtx = sprite.getContext("2d");
     const gradient = spriteCtx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-    gradient.addColorStop(0, colors.glow);
+    gradient.addColorStop(0, color);
     gradient.addColorStop(1, "transparent");
     spriteCtx.fillStyle = gradient;
     spriteCtx.fillRect(0, 0, size, size);
@@ -826,6 +895,7 @@ function makeGlowSprite() {
 // the intro's colors, from style.css
 let colors = null;
 let glowSprite = null;
+let glowSprites = null; // red, green and blue parts of the glow
 function readColors() {
     const style = getComputedStyle(document.documentElement);
     colors = {
@@ -835,7 +905,24 @@ function readColors() {
         glow:       style.getPropertyValue("--intro-glow").trim(),
         homeText:   style.getPropertyValue("--text").trim()
     };
-    glowSprite = makeGlowSprite();
+    colors.textChannels  = splitChannels(colors.text);
+    colors.trailChannels = splitChannels(colors.trail);
+    glowSprite = makeGlowSprite(colors.glow);
+    glowSprites = splitChannels(colors.glow).map(makeGlowSprite);
+}
+
+// a color as its parts
+function splitChannels(color) {
+    const swatch = document.createElement("canvas").getContext("2d");
+    swatch.fillStyle = color;
+    swatch.fillRect(0, 0, 1, 1);
+    const [r, g, b, a] = swatch.getImageData(0, 0, 1, 1).data;
+    const alpha = a / 255;
+    return [
+        "rgba(" + r + ", 0, 0, " + alpha + ")",
+        "rgba(0, " + g + ", 0, " + alpha + ")",
+        "rgba(0, 0, " + b + ", " + alpha + ")"
+    ];
 }
 readColors();
 

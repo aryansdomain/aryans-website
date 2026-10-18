@@ -36,19 +36,29 @@
                         <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
                         <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 24 -10" result="goo" />
                         <feMorphology in="goo" operator="dilate" radius="1" result="grown" />
+                        <!-- background colored base -->
+                        <feMorphology in="goo" operator="dilate" radius="5" result="base-area" />
                         <feFlood class="goo-fill" result="fill-color" />
-                        <feComposite in="fill-color" in2="goo" operator="in" result="fill" />
+                        <feComposite in="fill-color" in2="base-area" operator="in" result="base" />
 
                         <!-- border -->
                         <feComposite in="grown" in2="goo" operator="out" result="outline" />
                         <feFlood flood-color="#000" result="border-color" />
                         <feComposite in="border-color" in2="outline" operator="in" result="border-solid" />
-                        <feColorMatrix id="goo-border-alpha" in="border-solid" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0" result="border" />
+                        <feColorMatrix id="goo-border-alpha" in="border-solid" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0" result="dark" />
 
-                        <feMerge>
-                            <feMergeNode in="fill" />
-                            <feMergeNode in="border" />
-                        </feMerge>
+                        <!-- chromatic aberration -->
+                        <feOffset class="split-red" in="dark" dx="0" dy="0" result="dark-red" />
+                        <feFlood flood-color="#0ff" result="cyan" />
+                        <feComposite in="cyan" in2="dark-red" operator="in" result="ink-red" />
+                        <feFlood flood-color="#f0f" result="magenta" />
+                        <feComposite in="magenta" in2="dark" operator="in" result="ink-green" />
+                        <feOffset class="split-blue" in="dark" dx="0" dy="0" result="dark-blue" />
+                        <feFlood flood-color="#ff0" result="yellow" />
+                        <feComposite in="yellow" in2="dark-blue" operator="in" result="ink-blue" />
+                        <feBlend in="ink-red"   in2="base"           mode="multiply" result="with-red" />
+                        <feBlend in="ink-green" in2="with-red"       mode="multiply" result="with-red-green" />
+                        <feBlend in="ink-blue"  in2="with-red-green" mode="multiply" />
                     </filter>
                 </defs>
 
@@ -57,8 +67,6 @@
             </svg>
         </div>
 
-        <!-- fades out anything under the name -->
-        <div id="name-fade" aria-hidden="true"></div>
 
         <!-- lens blur around edges of the screen -->
         <div id="lens" aria-hidden="true">
@@ -67,31 +75,8 @@
         </div>
     </main>
 
-    <!-- chromatic abberation -->
-    <svg width="0" height="0" aria-hidden="true" style="position: absolute">
-        <filter id="screen-lens" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-            <feImage id="lens-map" preserveAspectRatio="none" result="map" />
-
-            <!-- background past screen edges -->
-            <feFlood class="lens-background" result="background" />
-            <feMerge result="padded">
-                <feMergeNode in="background" />
-                <feMergeNode in="SourceGraphic" />
-            </feMerge>
-
-            <!-- red moved out, blue moved in, green stays -->
-            <feDisplacementMap id="lens-out" in="padded" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G" result="moved-out" />
-            <feDisplacementMap id="lens-in"  in="padded" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G" result="moved-in" />
-            <feColorMatrix in="moved-out" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red" />
-            <feColorMatrix in="padded"    type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="green" />
-            <feColorMatrix in="moved-in"  type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blue" />
-            <feComposite in="red" in2="green" operator="arithmetic" k2="1" k3="1" result="red-green" />
-            <feComposite in="red-green" in2="blue" operator="arithmetic" k2="1" k3="1" result="split" />
-
-            <!-- cut back to page -->
-            <feComposite in="split" in2="SourceAlpha" operator="in" />
-        </filter>
-    </svg>
+    <!-- chromatic aberration -->
+    <svg width="0" height="0" aria-hidden="true" style="position: absolute"><defs id="lens-filters"></defs></svg>
 
     <script src="lens.js"></script>
     <script src="ring.js"></script>
