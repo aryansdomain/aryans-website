@@ -24,7 +24,7 @@ const CURSOR_SPEEDUP = 5; // ratio   how much faster than wandering dots are whe
 const CURSOR_CALM = 600;  // ms      how quickly fleeing dots slow back down to wandering
 
 // CHROMATIC ABERRATION
-const CHROMA_OFFSET = 2; // px    how far colors split from a dot
+const CHROMA_OFFSET = 1; // px    how far colors split from a dot
 const CHROMA_EASE = 150; // ms    how quickly color split follows the dot
 
 
