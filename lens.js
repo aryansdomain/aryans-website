@@ -114,9 +114,8 @@ function makeBoxLens(i, background) {
     }
 
     filter.innerHTML =
-        '<feMorphology in="SourceAlpha" operator="dilate" radius="' + Math.ceil(LENS_OFFSET + 1) + '" result="base-area" />' +
         '<feFlood flood-color="' + background.color + '" />' +
-        '<feComposite in2="base-area" operator="in" result="base" />' +
+        '<feComposite in2="SourceAlpha" operator="in" result="base" />' + // just the box and its border, so it doesn't cover the dots around it
         '<feColorMatrix in="SourceGraphic" type="matrix" values="' + darkness(0) + '" result="dark-red" />' +
         '<feColorMatrix in="SourceGraphic" type="matrix" values="' + darkness(1) + '" result="dark-green" />' +
         '<feColorMatrix in="SourceGraphic" type="matrix" values="' + darkness(2) + '" result="dark-blue" />' +
