@@ -25,48 +25,48 @@
                 <button class="category" data-cat="about"><span>About</span></button>
                 <button class="category" data-cat="writing"><span>Writing</span></button>
                 <button class="category" data-cat="research"><span>Research</span></button>
-                <button class="category" data-cat="projects"><span>Projects</span></button>
+                <button class="category" data-cat="games"><span>Games</span></button>
             </div>
 
             <!-- liquid shapes for subcategories -->
             <svg id="liquid-layer" xmlns="http://www.w3.org/2000/svg">
                 <defs>
-                    <!-- gooey filter with blur -->
-                    <filter id="goo" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
-                        <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
-                        <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 24 -10" result="goo" />
-                        <feMorphology in="goo" operator="dilate" radius="1" result="grown" />
+                    <!-- liquid filter with blur -->
+                    <filter id="liquid-filter" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+                        <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+                        <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 24 -10" result="liquid"/>
+                        <feMorphology in="liquid" operator="dilate" radius="1" result="grown"/>
                         <!-- background colored base -->
-                        <feMorphology in="goo" operator="dilate" radius="5" result="base-area" />
-                        <feFlood class="goo-fill" result="fill-color" />
-                        <feComposite in="fill-color" in2="base-area" operator="in" result="base" />
+                        <feMorphology in="liquid" operator="dilate" radius="5" result="base-area"/>
+                        <feFlood class="liquid-fill" result="fill-color"/>
+                        <feComposite in="fill-color" in2="base-area" operator="in" result="base"/>
 
                         <!-- border -->
-                        <feComposite in="grown" in2="goo" operator="out" result="outline" />
-                        <feFlood flood-color="#000" result="border-color" />
-                        <feComposite in="border-color" in2="outline" operator="in" result="border-solid" />
-                        <feColorMatrix id="goo-border-alpha" in="border-solid" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0" result="dark" />
+                        <feComposite in="grown" in2="liquid" operator="out" result="outline"/>
+                        <feFlood flood-color="#000" result="border-color"/>
+                        <feComposite in="border-color" in2="outline" operator="in" result="border-solid"/>
+                        <feColorMatrix id="liquid-border-alpha" in="border-solid" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0" result="dark"/>
 
                         <!-- chromatic aberration -->
-                        <feOffset class="split-red" in="dark" dx="0" dy="0" result="dark-red" />
-                        <feFlood flood-color="#0ff" result="cyan" />
-                        <feComposite in="cyan" in2="dark-red" operator="in" result="ink-red" />
-                        <feFlood flood-color="#f0f" result="magenta" />
-                        <feComposite in="magenta" in2="dark" operator="in" result="ink-green" />
-                        <feOffset class="split-blue" in="dark" dx="0" dy="0" result="dark-blue" />
-                        <feFlood flood-color="#ff0" result="yellow" />
-                        <feComposite in="yellow" in2="dark-blue" operator="in" result="ink-blue" />
-                        <feBlend in="ink-red"   in2="base"           mode="multiply" result="with-red" />
-                        <feBlend in="ink-green" in2="with-red"       mode="multiply" result="with-red-green" />
-                        <feBlend in="ink-blue"  in2="with-red-green" mode="multiply" />
+                        <feOffset class="split-red" in="dark" dx="0" dy="0" result="dark-red"/>
+                        <feFlood flood-color="#0ff" result="cyan"/>
+                        <feComposite in="cyan" in2="dark-red" operator="in" result="ink-red"/>
+                        <feFlood flood-color="#f0f" result="magenta"/>
+                        <feComposite in="magenta" in2="dark" operator="in" result="ink-green"/>
+                        <feOffset class="split-blue" in="dark" dx="0" dy="0" result="dark-blue"/>
+                        <feFlood flood-color="#ff0" result="yellow"/>
+                        <feComposite in="yellow" in2="dark-blue" operator="in" result="ink-blue"/>
+                        <feBlend in="ink-red"   in2="base"           mode="multiply" result="with-red"/>
+                        <feBlend in="ink-green" in2="with-red"       mode="multiply" result="with-red-green"/>
+                        <feBlend in="ink-blue"  in2="with-red-green" mode="multiply"/>
                     </filter>
 
                     <!-- hover glow around subboxes -->
                     <filter id="subbox-glow" x="-100%" y="-100%" width="300%" height="300%">
-                        <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur" />
-                        <feFlood class="glow-fill" />
-                        <feComposite in2="blur" operator="in" result="glow" />
-                        <feComposite in="glow" in2="SourceAlpha" operator="out" />
+                        <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur"/>
+                        <feFlood class="glow-fill"/>
+                        <feComposite in2="blur" operator="in" result="glow"/>
+                        <feComposite in="glow" in2="SourceAlpha" operator="out"/>
                     </filter>
                 </defs>
 
@@ -88,8 +88,11 @@
 
     <script src="lens.js"></script>
     <script src="ring.js"></script>
-    <script src="liquid.js"></script>
     <script src="home.js"></script>
+    <script src="liquid.js"></script>
+    <script src="subcats.js"></script>
+    <script src="hover.js"></script>
+    <script src="open.js"></script>
     <script src="dots.js"></script>
     <script src="intro.js"></script>
 </body>

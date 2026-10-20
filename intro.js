@@ -1103,3 +1103,5 @@ if (seenIntro) {
     Promise.all(loadTasks).then(skipIntro);
 }
 else startLoop();
+
+// TODO: still super laggy on phones, especially at burtsting and forming. any way to do some sort of precomputation?

@@ -1,3 +1,6 @@
+/* TODO: ORGANIZE */
+
+
 /* colors */
 :root {
     /* main page */
@@ -100,8 +103,8 @@ body {
     pointer-events: none;
 }
 
-/* colors of gooey filter*/
-#goo .goo-fill {
+/* colors of liquid filter*/
+#liquid-filter .liquid-fill {
     flood-color: var(--background);
 }
 
@@ -192,6 +195,36 @@ body {
 .category.liquid span {
     visibility: hidden;
 }
+/* clicked subbox grows to edges of screen */
+.open-frame {
+    position: fixed;
+    z-index: 1002; /* over everything */
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--text);
+    background: var(--background);
+    color: var(--text);
+    white-space: nowrap;
+    pointer-events: none;
+}
+.open-label {
+    position: relative;
+}
+.open-label-moving { /* moving to the page's title */
+    position: fixed;
+    transform: translate(-50%, -50%);
+    line-height: 1.1; /* same as the page's title */
+}
+.open-label-bold {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: 700;
+    opacity: 0;
+}
+
 .category.liquid {
     box-shadow: none !important;
 }

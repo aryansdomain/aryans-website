@@ -216,10 +216,6 @@ function getBoxAngle(box, atStop) {
     return boxAngle(i, atStop ? getPredictedStopAngle() : ring.angle);
 }
 
-function getRingSpeed() {
-    return ring.speed;
-}
-
 // whether stopping has finished
 function isRingStopped() {
     return ring.speed === 0 && ring.transition === null && ring.turn === null;

@@ -1,21 +1,12 @@
 // ------------------------ SETTINGS ------------------------
 
-const EXTEND_TIME  = 600;      // ms   time subboxes take to come out of  their box
-const RETRACT_TIME = 450;      // ms   time subboxes take to go back into their box
-const LABEL_TIME   = 300;      // ms   time labels take to fade in or out
-const SUBBOX_HOVER_TIME = 300; // ms   time hover glow takes to fade in or out (same as box-shadow transition in style.css)
-
 const EXTEND_BOX_AT   = 0.4; // fraction of extending time at which the blob has become a rectangle
 const RETRACT_BLOB_AT = 0.9; // fraction of retracting time at which the subbox has become a blob
 const RESHAPE_TIME    = 0.2; // fraction of extending or retracting time spent changing between rectangle and blob
 
 const BLOB_SIZE = 1; // diameter of blob between box and subbox, compared to its subbox's height
 
-const GOO_BLUR = 1; // px   how far apart shapes can be and still join
-
-// SUSPENDING
-const SUSPEND_DRIFT = 5;     // px      how far subboxes drift while hanging there
-const SUSPEND_PERIOD = 3800; // ms      time one drift loop takes
+const LIQUID_BLUR = 1; // px   how far apart shapes can be and still join
 
 
 
@@ -25,39 +16,25 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const liquidShapes    = document.getElementById("liquid-shapes");
 const liquidLabels    = document.getElementById("liquid-labels");
 
-// goo filter
-liquidShapes.setAttribute("filter", "url(#goo)");
-const gooBlur = document.querySelector("#goo feGaussianBlur");
+// liquid filter
+liquidShapes.setAttribute("filter", "url(#liquid-filter)");
+const liquidBlur = document.querySelector("#liquid-filter feGaussianBlur");
 
 // chromatic aberration toward screen edges
-const splitRed  = smoothOffset(document.querySelector("#goo .split-red") ) 
-const splitBlue = smoothOffset(document.querySelector("#goo .split-blue"));
+const splitRed  = smoothOffset(document.querySelector("#liquid-filter .split-red") )
+const splitBlue = smoothOffset(document.querySelector("#liquid-filter .split-blue"));
 
 const boxBorderAlpha = (function () {
     const parts = getComputedStyle(document.documentElement).getPropertyValue("--box-border").match(/[\d.]+/g);
     return parts && parts.length === 4 ? parseFloat(parts[3]) : 1;
 })();
-document.getElementById("goo-border-alpha").setAttribute("values", "1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 " + boxBorderAlpha + " 0");
-
-// one blob per subcategory, each turning into a subbox
-let blobs = [];
-let liquidParent = null; // box the blobs come out of
-let liquidTime = 0;      // time since blobs came out
-
-// mouse, for hovering subboxes like boxes
-const liquidHome = document.getElementById("home");
-const canHover = window.matchMedia("(hover: hover)"); // phones keep hover after a tap
-let liquidPointer = null; // where the mouse is on the screen
-liquidHome.addEventListener("pointermove", function (event) {
-    liquidPointer = event.pointerType === "touch" ? null : { x: event.clientX, y: event.clientY };
-});
-liquidHome.addEventListener("pointerleave", function () { liquidPointer = null; });
+document.getElementById("liquid-border-alpha").setAttribute("values", "1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 " + boxBorderAlpha + " 0");
 
 
 
 // ------------------------ UTILITIES ------------------------
 
-// silhouette for gooey filter
+// silhouette for liquid filter
 function makeSilhouette(tag) {
     const shape = document.createElementNS(SVG_NS, tag);
     shape.style.fill = "#000";
@@ -65,210 +42,8 @@ function makeSilhouette(tag) {
     return shape;
 }
 
-// hover glow and border in unfiltered layer, under label
-function makeHoverShapes() {
-    const glow = document.createElementNS(SVG_NS, "rect");
-    glow.setAttribute("filter", "url(#subbox-glow)");
-    glow.style.fill = "#000";
-
-    const border = document.createElementNS(SVG_NS, "rect");
-    border.style.fill = "none";
-    border.style.stroke = "var(--text)";
-    border.style.strokeWidth = "1";
-
-    for (const shape of [glow, border]) {
-        shape.style.opacity = 0;
-        liquidLabels.appendChild(shape);
-    }
-    return { glow: glow, border: border };
-}
-
-// label in unfiltered layer
-function makeLabel(text) {
-    const label = document.createElementNS(SVG_NS, "text");
-    label.setAttribute("text-anchor", "middle");
-    label.setAttribute("dominant-baseline", "central");
-    label.style.fill = "var(--text)";
-    label.textContent = text;
-    liquidLabels.appendChild(label);
-    return label;
-}
-
 function setAttributes(element, attributes) {
     for (const name in attributes) element.setAttribute(name, attributes[name]);
-}
-
-// font of box's label, scaled
-function boxFont(box, scale) {
-    const style = getComputedStyle(box);
-    return style.fontWeight + " " + parseFloat(style.fontSize) * scale + "px " + style.fontFamily;
-}
-
-
-
-// ------------------------ FOR HOME.JS ------------------------
-
-// make blobs for the subcategories in layout, starting inside parent and heading to their planned centers
-function spawnSubcats(parent, layout) {
-    clearBlobs();
-    const origin = getBoxCenter(parent, false);
-
-    // draw box here
-    liquidParent = {
-        box: parent,
-        x: origin.x, y: origin.y,
-        width: layout.box.width, height: layout.box.height,
-        hover: 0,
-        shape: makeSilhouette("rect"),
-        hoverShapes: makeHoverShapes(),
-        text: makeLabel(parent.textContent.trim())
-    };
-    liquidParent.text.style.font = boxFont(parent, 1);
-    liquidParent.text.style.letterSpacing = getComputedStyle(parent).letterSpacing;
-    parent.classList.add("liquid");
-
-    blobs = layout.subboxes.map(function (subbox) {
-        const blob = {
-            id:     subbox.id,
-            parent: subbox.parent,
-            label:  subbox.label,
-
-                  x:        origin.x,       y:        origin.y,
-            targetX: subbox.center.x, targetY: subbox.center.y,
-
-                  width: 0,                  height: 0,
-            targetWidth: subbox.width, targetHeight: subbox.height,
-
-            cornerRadius: 0,
-            opacity: 0, // of label
-
-            phase: "extend", // extend -> settle -> extended -> retract -> retracted
-            progress: 0,     // 0 = inside parent, 1 = at target
-            gooiness: 0,     // 0 = crisp, 1 = fully liquid
-
-            // own drift while suspended
-            driftPhase: Math.random() * Math.PI * 2,
-            driftPeriod: SUSPEND_PERIOD * (0.8 + Math.random() * 0.4),
-
-            hover: 0,
-
-            bodyShape: makeSilhouette("rect"),
-            hoverShapes: makeHoverShapes(),
-            text: makeLabel(subbox.label)
-        };
-        blob.text.style.font = boxFont(parent, subbox.height / layout.box.height);
-        blob.text.style.letterSpacing = getComputedStyle(parent).letterSpacing;
-        return blob;
-    });
-    updateLiquid(0);
-}
-
-// send all blobs back to parents
-function retractSubcats() {
-    blobs.forEach(function (blob) {
-        if (blob.phase === "retract" || blob.phase === "retracted") return;
-        blob.phase = "retract";
-        blob.retractProgress = 0;
-        blob.from = {
-            x: blob.x, y: blob.y,
-            width: blob.width, height: blob.height,
-            cornerRadius: blob.cornerRadius,
-            gooiness: blob.gooiness
-        };
-    });
-}
-
-// move blobs
-function updateLiquid(dt) {
-    if (blobs.length === 0) return;
-    const origin = getBoxCenter(liquidParent.box, false);
-    liquidParent.x = origin.x;
-    liquidParent.y = origin.y;
-    liquidTime += dt;
-
-    blobs.forEach(function (blob) {
-        if (blob.phase === "extend") {
-            blob.progress = Math.min(1, blob.progress + dt / EXTEND_TIME);
-            blob.opacity = Math.max(0, Math.min(blob.opacity + dt / LABEL_TIME, 2 * blob.progress - 1)); // label fades in from halfway
-            if (blob.progress === 1) blob.phase = "settle";
-        } else if (blob.phase === "settle") {
-            blob.opacity = Math.min(1, blob.opacity + dt / LABEL_TIME);
-            if (blob.opacity === 1) blob.phase = "extended";
-        } else if (blob.phase === "retract") {
-            blob.retractProgress = Math.min(1, blob.retractProgress + dt / RETRACT_TIME);
-
-            // fade out label, gone by halfway
-            blob.opacity = Math.max(0, Math.min(blob.opacity - dt / LABEL_TIME, 1 - 2 * blob.retractProgress));
-            if (blob.retractProgress === 1) blob.phase = "retracted";
-        }
-
-        if (blob.phase === "retract" || blob.phase === "retracted") shapeBlob(blob, origin, blob.from, blob.retractProgress, RETRACT_BLOB_AT - RESHAPE_TIME, RETRACT_BLOB_AT);
-        else {
-            shapeBlob(blob, origin, finishedSubbox(blob), 1 - blob.progress, 1 - EXTEND_BOX_AT, 1 - EXTEND_BOX_AT + RESHAPE_TIME);
-
-            // drift in a slow loop
-            const drift = SUSPEND_DRIFT * outAmount(blob);
-            const angle = 2 * Math.PI * liquidTime / blob.driftPeriod + blob.driftPhase;
-            blob.x += Math.cos(angle) * drift;
-            blob.y += Math.sin(2 * angle) * drift / 2;
-        }
-    });
-
-    // fade hover in on the subbox
-    const hovered = hoveredShape();
-    [liquidParent].concat(blobs).forEach(function (shape) {
-        const step = dt / SUBBOX_HOVER_TIME;
-        shape.hover = shape === hovered ? Math.min(1, shape.hover + step) : Math.max(0, shape.hover - step);
-    });
-    liquidHome.style.cursor = hovered ? "pointer" : "";
-
-    // all back inside
-    if (blobs.every(function (blob) { return blob.phase === "retracted"; })) {
-        clearBlobs();
-        return;
-    }
-    drawLiquid(origin);
-}
-
-// parent/finished subbox under the mouse
-function hoveredShape() {
-    if (liquidPointer === null || !canHover.matches) return null;
-    const rect = liquidHome.getBoundingClientRect();
-    const x = (liquidPointer.x - rect.left - worldCamera.x) / worldCamera.scale; // in the world
-    const y = (liquidPointer.y - rect.top  - worldCamera.y) / worldCamera.scale;
-
-    return [liquidParent].concat(blobs).find(function (shape) {
-        if (shape !== liquidParent && shape.phase !== "settle" && shape.phase !== "extended") return false;
-        return Math.abs(x - shape.x) <= shape.width / 2 && Math.abs(y - shape.y) <= shape.height / 2;
-    }) || null;
-}
-
-// smallest rectangle around blobs
-function getLiquidBounds() {
-    if (blobs.length === 0) return null;
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-    blobs.forEach(function (blob) {
-        const halfWidth  = blob.width  / 2;
-        const halfHeight = blob.height / 2;
-
-        minX = Math.min(minX, blob.x - halfWidth);
-        minY = Math.min(minY, blob.y - halfHeight);
-        maxX = Math.max(maxX, blob.x + halfWidth);
-        maxY = Math.max(maxY, blob.y + halfHeight);
-    });
-
-    return {
-        minX, minY,
-        maxX, maxY,
-        centerX: (minX + maxX) / 2, centerY: (minY + maxY) / 2,
-        width: maxX - minX, height: maxY - minY
-    };
-}
-
-// whether every blob has finished coming out or going back in
-function isStable() {
-    return blobs.every(function (blob) { return blob.phase === "extended" || blob.phase === "retracted"; });
 }
 
 
@@ -291,7 +66,7 @@ function finishedSubbox(blob) {
         x: blob.targetX, y: blob.targetY,
         width: blob.targetWidth, height: blob.targetHeight,
         cornerRadius: 0,
-        gooiness: 0
+        liquidity: 0
     };
 }
 
@@ -314,7 +89,7 @@ function shapeBlob(blob, origin, from, r, rectUntil, blobFrom) {
     blob.width  = lerp(from.width,  2 * radius, round) * (1 - shrink);
     blob.height = lerp(from.height, 2 * radius, round) * (1 - shrink);
     blob.cornerRadius = Math.min(lerp(from.cornerRadius, radius, round) * (1 - shrink), blob.width / 2, blob.height / 2);
-    blob.gooiness = lerp(from.gooiness, 1, melt) * (1 - crisp);
+    blob.liquidity = lerp(from.liquidity, 1, melt) * (1 - crisp);
 }
 
 
@@ -322,8 +97,8 @@ function shapeBlob(blob, origin, from, r, rectUntil, blobFrom) {
 // ------------------------ DRAWING ------------------------
 
 function drawLiquid(origin) {
-    const gooiness = Math.max.apply(null, blobs.map(function (blob) { return blob.gooiness; }));
-    gooBlur.setAttribute("stdDeviation", Math.max(0.01, GOO_BLUR * gooiness));
+    const liquidity = Math.max.apply(null, blobs.map(function (blob) { return blob.liquidity; }));
+    liquidBlur.setAttribute("stdDeviation", Math.max(0.01, LIQUID_BLUR * liquidity));
     splitByLens(origin);
 
     // parent, following the ring
@@ -333,8 +108,6 @@ function drawLiquid(origin) {
         width: liquidParent.width,
         height: liquidParent.height
     });
-    setAttributes(liquidParent.text, { x: origin.x, y: origin.y });
-    drawHover(liquidParent);
 
     blobs.forEach(function (blob) {
         setAttributes(blob.bodyShape, {
@@ -344,42 +117,7 @@ function drawLiquid(origin) {
             height: blob.height,
             rx: blob.cornerRadius
         });
-        drawHover(blob);
-
-        // keep label upright
-        blob.text.setAttribute("x", blob.x);
-        blob.text.setAttribute("y", blob.y);
-        blob.text.style.opacity = blob.opacity;
     });
-}
-
-// hover glow, and border
-function drawHover(shape) {
-    setAttributes(shape.hoverShapes.glow, {
-        x: shape.x - shape.width / 2,
-        y: shape.y - shape.height / 2,
-        width:  shape.width,
-        height: shape.height
-    });
-    setAttributes(shape.hoverShapes.border, {
-        x: shape.x - shape.width / 2 - 0.5,
-        y: shape.y - shape.height / 2 - 0.5,
-        width:  shape.width + 1,
-        height: shape.height + 1
-    });
-    shape.hoverShapes.glow.style.opacity   = shape.hover;
-    shape.hoverShapes.border.style.opacity = shape.hover;
-}
-
-// how far out a blob is
-function outAmount(blob) {
-    if (blob.phase === "retract" || blob.phase === "retracted") return 1 - smoothstep(Math.min(1, blob.retractProgress * 2));
-    if (blob.phase === "extend") return smoothstep(blob.progress);
-    return 1;
-}
-
-function smoothstep(u) {
-    return u * u * (3 - 2 * u);
 }
 
 // split the border
@@ -400,13 +138,8 @@ function setSplit(dx, dy) {
     splitBlue(-dx, -dy);
 }
 
-function clearBlobs() {
+// take away all liquid shapes
+function clearLiquid() {
     setSplit(0, 0);
-    if (liquidParent !== null) liquidParent.box.classList.remove("liquid"); // draw box again
-    blobs = [];
-    liquidParent = null;
-    liquidTime = 0;
-    liquidHome.style.cursor = "";
     liquidShapes.replaceChildren();
-    liquidLabels.replaceChildren();
 }
