@@ -1,0 +1,120 @@
+:root {
+    /* colors */
+    --green: #6aaa64;
+    --yellow: #c9b458;
+    --absent-bg: #787c7e;
+    --empty-border: #d3d6da;
+    --filled-border: #878a8c;
+    --key-bg: #d3d6da;
+    --text-color: #1a1a1b;
+    --white: #ffffff;
+    --background: #fafafa; /* same as home page */
+
+    /* home page colors, for the back button */
+    --home-text: #111;
+    --home-border: rgba(0, 0, 0, 0.65);
+    --home-glow: rgba(0, 0, 0, 0.25);
+
+    /* sizes, shrink on small screens */
+    --title-top:         clamp(8px,  4dvh,  40px ); /* space between top of screen and topbar */
+    --title-grid-gap:    clamp(10px, 3dvh,  30px); /* space between topbar and grid */
+    --tile-size: min(62px, calc((100vw - 40px) / 5), calc((100dvh - var(--title-top) - 3 * var(--key-height) - var(--keyboard-bottom) - var(--title-grid-gap) - var(--grid-keyboard-gap) - 110px) / 6)); /* height of tiles in grid */
+    --grid-keyboard-gap: clamp(6px, 2dvh,  15px ); /* space between grid and keyboard */
+    --key-height:        clamp(36px, 7dvh,  58px ); /* height of each key */
+    --keyboard-bottom:   clamp(8px,  5dvh,  60px ); /* space under keyboard */
+}
+
+body {
+    background-color: var(--background);
+    color: var(--text-color);
+    font-family: var(--font-sans);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100dvh;
+    margin: 0;
+    overflow: hidden;
+}
+
+/* topbar */
+.topbar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    margin-top: var(--title-top);
+    flex-shrink: 0;
+}
+.topbar-title {
+    grid-column: 2;
+    margin: 0;
+    font: 700 clamp(1.5rem, 5vw, 2.2rem) / 1.1 var(--font-serif);
+    letter-spacing: normal;
+    text-align: center;
+}
+
+/* back button */
+.back-button {
+    position: relative;
+    display: inline-block;
+    margin-left: clamp(8px, 3vw, 28px);
+    padding: 0.7em 1.5em;
+    color: var(--home-text);
+    font: 200 clamp(15px, 4.2vw, 20px) var(--font-serif);
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    white-space: nowrap;
+    isolation: isolate;
+    transition: box-shadow 300ms ease;
+}
+/* border */
+.back-button::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    z-index: -1;
+    border: 1px solid var(--home-border);
+    transition: border-color 300ms ease;
+}
+/* glow and darker border */
+.back-button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 12px var(--home-glow);
+}
+.back-button:focus-visible::before {
+    border-color: var(--home-text);
+}
+@media (hover: hover) { /* phones keep hover after a tap */
+    .back-button:hover {
+        box-shadow: 0 0 12px var(--home-glow);
+    }
+    .back-button:hover::before {
+        border-color: var(--home-text);
+    }
+}
+
+/* text */
+p {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 680px;
+    padding: 0 clamp(16px, 5vw, 32px);
+}
+
+/* links in text */
+p a {
+    text-decoration: none; /* no underline in default */
+    background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
+    transition: background-size 400ms ease;
+}
+p a:focus-visible {
+    outline: none;
+    background-size: 100% 1px; /* underline draws itself in on hover */
+}
+@media (hover: hover) {
+    p a:hover {
+        background-size: 100% 1px;
+    }
+}
