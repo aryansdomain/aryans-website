@@ -46,10 +46,7 @@ const TOPBAR_TEXT_WIDTH = 0.12;    // ratio   how much of the width of the scree
 const TOPBAR_MIN_TEXT_WIDTH = 130; // px      smallest topbar text can be
 const TOPBAR_Y = 40;               // px      how far the middle of the text is from the top of the screen
 const TOPBAR_POINTS_PER_PIXEL = 7; // pts/px  points per pixel of topbar letters
-const TOPBAR_POINT_RADIUS = 0.25;  // px      size of points in the topbar text
-
-const HOVER_POINT_RADIUS = 0.4;    // px      size of points in the topbar text when hovered, bigger -> bolder
-const HOVER_TIME = 200;            // ms      time the hover animation takes
+const TOPBAR_POINT_RADIUS = 0.4;   // px      size of points in the topbar text, bigger -> darker
 
 // CAMERA
 const FOV = 70;       // deg   up-and-down view angle
@@ -522,8 +519,7 @@ function capturePoints() {
     capture = {
         image,                                                                    // the points as they were, full size
         small: null,                                                              // the points drawn at topbar size
-        hoverSmall: null,                                                         // the same points at hovered size
-        home: null,                                                               // all three in the main page's text color
+        home: null,                                                               // both in the main page's text color
         left:  (left - width  / 2) / textWidth,
         top:    (top  - height / 2) / textWidth,
         width:  (right  - left) / textWidth,
@@ -551,9 +547,7 @@ function drawTopbarImage() {
     const targets = [];
     for (let i = 0; i < count; i++) targets.push(randomInLetters());
 
-    // same points, normal and hovered
-    capture.small      = drawTopbarPoints(targets, textWidth, TOPBAR_POINT_RADIUS);
-    capture.hoverSmall = drawTopbarPoints(targets, textWidth, HOVER_POINT_RADIUS );
+    capture.small = drawTopbarPoints(targets, textWidth, TOPBAR_POINT_RADIUS);
 }
 
 // image of points at targets
@@ -579,23 +573,6 @@ function drawTopbarPoints(targets, textWidth, radius) {
     return small;
 }
 
-// hover over the topbar text, eased between 0 (not hovered) and 1 (hovered)
-let hoverFrom = 0;
-let hoverTo = 0;
-let hoverStart = -Infinity; // time hover animation started
-function hoverAmount(now) {
-    const t = clamp(0, 1, (now - hoverStart) / HOVER_TIME);
-    const eased = 1 - (1 - t) * (1 - t) * (1 - t); // fast start, slow end
-    return hoverFrom + (hoverTo - hoverFrom) * eased;
-}
-function setHover(to) {
-    const now = performance.now();
-    hoverFrom  = hoverAmount(now);
-    hoverTo    = to;
-    hoverStart = now;
-    startLoop();
-}
-
 // where the captured text is at a time
 let topbarStart = null; // time the move to the topbar started
 function namePlace(now) {
@@ -613,8 +590,6 @@ function namePlace(now) {
 function drawCapture(now) {
     const { eased, textWidth, middleY } = namePlace(now);
     setIntroLens(1 - eased); // lens fades out as the name moves into the topbar
-
-    const hover = hoverAmount(now);
 
     // box location
     const x = width / 2 + capture.left * textWidth;
@@ -635,19 +610,14 @@ function drawCapture(now) {
             ctx.drawImage(images.image, x, y, w, h);
         }
         if (sharp > 0) {
-            // fade from normal to hovered points, which are bigger so the text is bolder
+            // when not moving, line up with pixels and don't stretch
             const dpr = window.devicePixelRatio || 1;
-            for (const [small, strength] of [[images.small, 1 - hover], [images.hoverSmall, hover]]) {
-                if (strength <= 0) continue;
+            const box = sharp === 1
+                ? [Math.round(x * dpr) / dpr, Math.round(y * dpr) / dpr, images.small.width / dpr, images.small.height / dpr]
+                : [x, y, w, h];
 
-                // when not moving, line up with pixels and don't stretch, to keep it sharp
-                const box = sharp === 1
-                    ? [Math.round(x * dpr) / dpr, Math.round(y * dpr) / dpr, small.width / dpr, small.height / dpr]
-                    : [x, y, w, h];
-
-                ctx.globalAlpha = alpha * sharp * strength;
-                ctx.drawImage(small, ...box);
-            }
+            ctx.globalAlpha = alpha * sharp;
+            ctx.drawImage(images.small, ...box);
         }
     }
     ctx.globalAlpha = 1;
@@ -669,9 +639,8 @@ function colorImage(image, color) {
 // copy captured text in the main page's text color
 function colorCaptureForHome() {
     capture.home = {
-        image:      colorImage(capture.image,      colors.homeText),
-        small:      colorImage(capture.small,      colors.homeText),
-        hoverSmall: colorImage(capture.hoverSmall, colors.homeText)
+        image: colorImage(capture.image, colors.homeText),
+        small: colorImage(capture.small, colors.homeText)
     };
 }
 
@@ -1017,8 +986,7 @@ function frame(now) {
     }
 
     if (capture !== null) {
-        const moving   = topbarStart !== null && now - topbarStart < TOPBAR_TIME;
-        const hovering =                         now - hoverStart  < HOVER_TIME;
+        const moving = topbarStart !== null && now - topbarStart < TOPBAR_TIME;
 
         // text is in topbar, so show the main page
         if (topbarStart !== null && !moving) {
@@ -1026,8 +994,8 @@ function frame(now) {
             placeNameButton();
         }
 
-        // after captured, only redraw when moving to topbar or hovering
-        if (!moving && !hovering) {
+        // after captured, only redraw when moving to topbar
+        if (!moving) {
             looping = false;
             return;
         }
@@ -1080,11 +1048,8 @@ function placeNameButton() {
     nameButton.style.height =            capture.height * textWidth + "px";
 }
 
-nameButton.addEventListener("mouseenter", function () { setHover(1); });
-nameButton.addEventListener("mouseleave", function () { setHover(0); });
-
-// clicked, replay intro
-nameButton.addEventListener("click", function () {
+// replay button in the corner
+document.getElementById("replay").addEventListener("click", function () {
     try { localStorage.removeItem(SEEN_INTRO_KEY); } catch (error) {}
     location.reload();
 });

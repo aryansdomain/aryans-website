@@ -142,7 +142,7 @@ body {
     border: 1px solid transparent;
     background: var(--background);
     color: var(--text);
-    font: 200 var(--box-font) Palatino, serif;
+    font: 200 var(--box-font) var(--font-serif);
     letter-spacing: 0.05em;
     white-space: nowrap;
     cursor: pointer;
@@ -262,4 +262,54 @@ body {
     background: none;
     border: none;
     cursor: pointer;
+}
+/* underline under the name */
+#name::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -6px;
+    height: 1px;
+    background: var(--box-border);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 400ms ease;
+}
+#name:focus-visible {
+    outline: none;
+}
+#name:focus-visible::after {
+    transform: scaleX(1);
+}
+@media (hover: hover) {
+    #name:hover::after {
+        transform: scaleX(1);
+    }
+}
+
+/* replay intro button */
+#replay {
+    position: fixed;
+    left: clamp(12px, 3vw, 28px);
+    top: 20px;
+    z-index: 10;
+    padding: 6px;
+    border: 0;
+    background: none;
+    color: rgba(0, 0, 0, 0.5);
+    font: 20px / 1 var(--font-serif);
+    cursor: pointer;
+    transition: transform 200ms ease, color 200ms ease;
+}
+#replay:focus-visible {
+    outline: none;
+    color: var(--text);
+    transform: scale(1.15);
+}
+@media (hover: hover) {
+    #replay:hover {
+        color: var(--text);
+        transform: scale(1.15);
+    }
 }

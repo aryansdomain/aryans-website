@@ -21,17 +21,16 @@ const SUSPEND_PERIOD = 3800; // ms   time one drift loop takes
 // labels for subcategories in order
 const subcats = {
     writing: ["Essays", "Short Stories", "Poetry"],
-    research: ["2026", "2027"],
+    projects: ["IGCSE IDE"],
     games: ["Wörtel"]
 };
 
 // pages boxes with no subcategories open directly
-const boxLinks = {
-    about: "about/"
-};
+const boxLinks = {};
 
 // pages subcategories open
 const subcatLinks = {
+    projects: { "IGCSE IDE": "projects/IGCSE_IDE/" },
     games: { "Wörtel": "games/Wörtel/" }
 };
 

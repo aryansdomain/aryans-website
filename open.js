@@ -3,20 +3,20 @@
 const OPEN_TIME = 700;        // ms   time a clicked subbox's border takes to grow to the edges of the screen
 const OPEN_BORDER_FADE = 0.7; //      how far the box has grown when its border starts fading away
 
-// pages whose title g=is there from the corresponding box/subbox
-const titleSpots = {
-    "games/Wörtel/": function () {
-        const titleTop   = clamp(8,  40,   0.04  * window.innerHeight); // --title-top
-        const titleSize  = clamp(24, 35.2, 0.05  * window.innerWidth);  // .topbar-title font size
-        const buttonSize = clamp(15, 20,   0.042 * window.innerWidth);  // .back-button font size
-        const rowHeight  = Math.max(titleSize * 1.1, buttonSize * (1.2 + 2 * 0.7)); // tallest thing in the topbar: title or back button
-        return {
-            y: titleTop + 8 + rowHeight / 2, // middle of the title, under 8px of topbar padding
-            size: titleSize,
-            spacing: 1.6 // letter spacing, 0.1rem
-        };
-    }
-};
+// pages whose title comes there from the corresponding box/subbox
+const titlePages = ["games/Wörtel/", "about/", "projects/IGCSE_IDE/"];
+
+function titleSpot() {
+    const titleTop   = clamp(8,  40,   0.04  * window.innerHeight); // --title-top
+    const titleSize  = clamp(24, 35.2, 0.05  * window.innerWidth);  // .topbar-title font size
+    const buttonSize = clamp(15, 20,   0.042 * window.innerWidth);  // .back-button font size
+    const rowHeight  = Math.max(titleSize * 1.1, buttonSize * (1.2 + 2 * 0.7));
+    return {
+        y: titleTop + 8 + rowHeight / 2,
+        size: titleSize,
+        spacing: 0
+    };
+}
 
 
 
@@ -63,7 +63,7 @@ function openBox(box, link) {
 let openFrame = null; // the growing box
 function openPage(from, text, labelStyle, link) {
     // where the label goes: the title of the page, or nowhere
-    const spot = titleSpots[link] ? titleSpots[link]() : null;
+    const spot = titlePages.includes(link) ? titleSpot() : null;
     const handoff = spot !== null;
     const startSize    = parseFloat(labelStyle.fontSize);
     const startSpacing = parseFloat(labelStyle.letterSpacing) || 0;
