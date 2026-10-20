@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aryan Singhal - Wörtel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-leading">
+            <a class="back-button" href="../../">Back</a>
+        </div>
+        <h1 class="topbar-title">Wörtel</h1>
+        <div class="topbar-trailing">
+            <button class="settings-button" aria-label="Settings"><i class="fa-solid fa-gear"></i></button>
+            <button class="help-button" aria-label="How to Play"><i class="fa-solid fa-question"></i></button>
+        </div>
+    </header>
+
+    <div id="message-container"></div>
+
+    <div id="game-container">
+        <div id="grid" class="grid"></div>
+    </div>
+
+    <div id="keyboard">
+        <div class="keyboard-row">
+            <button class="key" data-key="Q">Q</button>
+            <button class="key" data-key="W">W</button>
+            <button class="key" data-key="E">E</button>
+            <button class="key" data-key="R">R</button>
+            <button class="key" data-key="T">T</button>
+            <button class="key" data-key="Z">Z</button>
+            <button class="key" data-key="U">U</button>
+            <button class="key" data-key="I">I</button>
+            <button class="key" data-key="O">O</button>
+            <button class="key" data-key="P">P</button>
+            <button class="key" data-key="Ü">Ü</button>
+        </div>
+        <div class="keyboard-row">
+            <button class="key" data-key="A">A</button>
+            <button class="key" data-key="S">S</button>
+            <button class="key" data-key="D">D</button>
+            <button class="key" data-key="F">F</button>
+            <button class="key" data-key="G">G</button>
+            <button class="key" data-key="H">H</button>
+            <button class="key" data-key="J">J</button>
+            <button class="key" data-key="K">K</button>
+            <button class="key" data-key="L">L</button>
+            <button class="key" data-key="Ö">Ö</button>
+            <button class="key" data-key="Ä">Ä</button>
+        </div>
+        <div class="keyboard-row">
+            <button class="key wide" data-key="ENTER"    >ENTER</button>
+            <button class="key"      data-key="Y"        >Y    </button>
+            <button class="key"      data-key="X"        >X    </button>
+            <button class="key"      data-key="C"        >C    </button>
+            <button class="key"      data-key="V"        >V    </button>
+            <button class="key"      data-key="B"        >B    </button>
+            <button class="key"      data-key="N"        >N    </button>
+            <button class="key"      data-key="M"        >M    </button>
+            <button class="key"      data-key="ß"        >ß    </button>
+            <button class="key wide" data-key="BACKSPACE">⌫    </button>
+        </div>
+    </div>
+
+    <!-- welcome popup -->
+    <div id="welcome" hidden>
+        <div class="welcome-box" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+            <h2 id="welcome-title" class="welcome-title">
+                <span class="only-en">How To Play</span>
+                <span class="only-de">So wird gespielt</span>
+            </h2>
+            <p class="welcome-subtitle">
+                <span class="only-en">Guess the Wörtel in 6 tries.</span>
+                <span class="only-de">Errate das Wörtel in 6 Versuchen.</span>
+            </p>
+
+            <ul>
+                <li>
+                    <span class="only-en">Each guess must be a valid 5-letter German word.</span>
+                    <span class="only-de">Jeder Versuch muss ein gültiges deutsches Wort mit 5 Buchstaben sein.</span>
+                </li>
+                <li>
+                    <span class="only-en">The color of the tiles will change to show how close your guess was to the word.</span>
+                    <span class="only-de">Die Farbe der Felder zeigt, wie nah dein Versuch am Wort war.</span>
+                </li>
+                <li>
+                    <span class="only-en">Ä, Ö, Ü and ß count as their own letters.</span>
+                    <span class="only-de">Ä, Ö, Ü und ß zählen als eigene Buchstaben.</span>
+                </li>
+            </ul>
+
+            <p class="welcome-examples">
+                <span class="only-en">Examples</span>
+                <span class="only-de">Beispiele</span>
+            </p>
+
+            <div class="example">
+                <div class="example-word">
+                    <span class="example-tile" data-state="correct">B</span><span class="example-tile">L</span><span class="example-tile">U</span><span class="example-tile">M</span><span class="example-tile">E</span>
+                </div>
+                <p>
+                    <b>B</b>
+                    <span class="only-en">is in the word and in the correct spot.</span>
+                    <span class="only-de">ist im Wort und an der richtigen Stelle.</span>
+                </p>
+            </div>
+            <div class="example">
+                <div class="example-word">
+                    <span class="example-tile">T</span><span class="example-tile" data-state="present">I</span><span class="example-tile">S</span><span class="example-tile">C</span><span class="example-tile">H</span>
+                </div>
+                <p>
+                    <b>I</b>
+                    <span class="only-en">is in the word but in the wrong spot.</span>
+                    <span class="only-de">ist im Wort, aber an der falschen Stelle.</span>
+                </p>
+            </div>
+            <div class="example">
+                <div class="example-word">
+                    <span class="example-tile">K</span><span class="example-tile">A</span><span class="example-tile">T</span><span class="example-tile" data-state="absent">Z</span><span class="example-tile">E</span>
+                </div>
+                <p>
+                    <b>Z</b>
+                    <span class="only-en">is not in the word in any spot.</span>
+                    <span class="only-de">ist an keiner Stelle im Wort.</span>
+                </p>
+            </div>
+
+            <p class="welcome-credit">
+                <span class="only-en">Wörtel is a German clone of</span>
+                <span class="only-de">Wörtel ist ein deutscher Klon von</span>
+                <a href="https://www.nytimes.com/games/wordle/index.html" target="_blank" rel="noopener">Wordle</a>.
+            </p>
+
+            <button class="welcome-close"><span class="only-en">Play</span><span class="only-de">Spielen</span></button>
+        </div>
+    </div>
+
+    <!-- settings popup -->
+    <div id="settings" hidden>
+        <div class="welcome-box settings-box" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+            <h2 id="settings-title" class="welcome-title">
+                <span class="only-en">Settings</span>
+                <span class="only-de">Einstellungen</span>
+            </h2>
+
+            <div class="setting">
+                <span>
+                    <span class="only-en">Language</span>
+                    <span class="only-de">Sprache</span>
+                </span>
+                <div class="lang-switch" role="group" aria-label="Language / Sprache">
+                    <button data-lang="en">EN</button><button data-lang="de">DE</button>
+                </div>
+            </div>
+
+            <div class="setting">
+                <span>
+                    <span class="only-en">Hard Mode</span>
+                    <span class="only-de">Schwerer Modus</span>
+                    <span class="setting-note">
+                        <span class="only-en">Any revealed hints must be used in subsequent guesses</span>
+                        <span class="only-de">Aufgedeckte Hinweise müssen in späteren Versuchen verwendet werden</span>
+                    </span>
+                </span>
+                <button class="toggle hard-mode-toggle" role="switch" aria-checked="false" aria-label="Hard Mode / Schwerer Modus"></button>
+            </div>
+
+            <button class="welcome-close settings-close"><span class="only-en">Done</span><span class="only-de">Fertig</span></button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
