@@ -4,7 +4,7 @@ const OPEN_TIME = 700;        // ms   time a clicked subbox's border takes to gr
 const OPEN_BORDER_FADE = 0.7; //      how far the box has grown when its border starts fading away
 
 // pages whose title comes there from the corresponding box/subbox
-const titlePages = ["games/Wörtel/", "about/", "projects/IGCSE_IDE/"];
+const titlePages = ["pages/games/Wörtel/", "pages/about/", "pages/projects/IGCSE_IDE/"];
 
 function titleSpot() {
     const titleTop   = clamp(8,  40,   0.04  * window.innerHeight); // --title-top
