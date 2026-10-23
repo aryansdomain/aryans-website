@@ -7,10 +7,9 @@ const SUBBOX_HOVER_TIME = 300; // ms   time hover glow takes to fade in or out (
 // ------------------------ STATE ------------------------
 
 // mouse, for hovering subboxes like boxes
-const canHover = window.matchMedia("(hover: hover)"); // phones keep hover after a tap
 let hoverPointer = null; // where the mouse is on the screen
 home.addEventListener("pointermove", function (event) {
-    hoverPointer = event.pointerType === "touch" ? null : { x: event.clientX, y: event.clientY };
+    hoverPointer = { x: event.clientX, y: event.clientY };
 });
 home.addEventListener("pointerleave", function () { hoverPointer = null; });
 
@@ -38,7 +37,7 @@ function makeHoverShapes() {
 
 // parent/finished subbox under the mouse
 function hoveredShape() {
-    if (hoverPointer === null || !canHover.matches) return null;
+    if (hoverPointer === null) return null;
     return shapeAt(hoverPointer);
 }
 
