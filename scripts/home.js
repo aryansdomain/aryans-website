@@ -3,6 +3,7 @@
 const NAME_SPACE = 80;        // px   space at top for name (same as --name-space in style.css)
 const CAMERA_PADDING = 32;    // px   space between focused group and edges of screen
 const MIN_CAMERA_SCALE = 0.6; //      furthest camera zooms out to fit subcategories
+const FOCUS_ZOOM = 1.2;       //      how far camera zooms in on subcategories
 
 
 
@@ -41,7 +42,7 @@ function getCameraTarget(bounds, box) {
     const width = home.clientWidth;
     const height = home.clientHeight - top;
 
-    const scale = Math.max(MIN_CAMERA_SCALE, Math.min(1,
+    const scale = Math.max(MIN_CAMERA_SCALE, Math.min(FOCUS_ZOOM,
         (width  - 2 * CAMERA_PADDING) / bounds.width,
         (height - 2 * CAMERA_PADDING) / bounds.height
     ));
