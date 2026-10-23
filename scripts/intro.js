@@ -75,6 +75,8 @@ const POINT_GLOW_STRENGTH = 0.6; // 0-1     brightness of point
 const TRAIL_GLOW_SIZE = 0.0043;  // ratio   width of the glow around trails, (6px on a 1990x992 window)
 const TRAIL_GLOW_STRENGTH = 0.2; // 0-1     brightness of trail
 
+// CANVAS
+const MAX_INTRO_PIXEL_RATIO = 1.5; // ratio   maximum number of canvas pixels per screen pixel while animating
 
 
 // ------------------------ UTILITIES ------------------------
@@ -219,17 +221,27 @@ const ctx = canvas.getContext("2d");
 let width = 0;
 let height = 0;
 
-// resize canvas size to window size
-function resize() {
+// canvas pixels per screen pixel
+function canvasPixelRatio() {
     const dpr = window.devicePixelRatio || 1;
+    return capture === null ? Math.min(dpr, MAX_INTRO_PIXEL_RATIO) : dpr;
+}
 
-    width  = window.innerWidth;
-    height = window.innerHeight;
-    canvas.width  = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
+// canvas size to window size
+function sizeCanvas() {
+    const ratio = canvasPixelRatio();
+    canvas.width  = Math.round(width  * ratio);
+    canvas.height = Math.round(height * ratio);
 
     // scale so drawing can be done using pixels
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+}
+
+// resize canvas size to window size
+function resize() {
+    width  = window.innerWidth;
+    height = window.innerHeight;
+    sizeCanvas();
 
     updateCameraLens();
 
@@ -517,19 +529,23 @@ function capturePoints() {
     // box relative to the middle of the text, in text-widths
     const textWidth = width * TEXT_SCREEN_WIDTH;
     capture = {
-        image,                                                                    // the points as they were, full size
-        small: null,                                                              // the points drawn at topbar size
-        home: null,                                                               // both in the main page's text color
-        left:  (left - width  / 2) / textWidth,
-        top:    (top  - height / 2) / textWidth,
-        width:  (right  - left) / textWidth,
-        height: (bottom - top ) / textWidth
+        image,
+        small: null,
+        home: null,
+        left:   (left   - width  / 2) / textWidth,
+        top:    (top    - height / 2) / textWidth,
+        width:  (right  - left      ) / textWidth,
+        height: (bottom - top       ) / textWidth
     };
     drawTopbarImage();
     colorCaptureForHome();
 
     // kill points
     points.length = 0;
+
+    // full resolution for name
+    sizeCanvas();
+    drawCapture(performance.now());
 }
 
 // width of topvar text
@@ -1068,5 +1084,3 @@ if (seenIntro) {
     Promise.all(loadTasks).then(skipIntro);
 }
 else startLoop();
-
-// TODO: still super laggy on phones, especially at burtsting and forming. any way to do some sort of precomputation?
