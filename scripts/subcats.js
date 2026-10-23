@@ -18,14 +18,14 @@ const SUSPEND_PERIOD = 3800; // ms   time one drift loop takes
 
 // ------------------------ SUBCATEGORIES ------------------------
 
-// labels for subcategories in order
+// subcategory
 const subcats = {
-    writing: ["Essays", "Short Stories", "Poetry"],
+    writing: ["Short Stories", "Poetry"],
     projects: ["IGCSE IDE"],
     games: ["Wörtel"]
 };
 
-// pages boxes with no subcategories open directly
+// boxes with no subcategories open directly
 const boxLinks = {};
 
 // pages subcategories open

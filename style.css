@@ -26,7 +26,7 @@ body {
     overflow: hidden;
 }
 
-/* intro animation, dark until the text moves into the topbar */
+/* intro animation */
 #scene {
     position: fixed;
     inset: 0;
@@ -34,7 +34,7 @@ body {
     height: 100vh;
     z-index: 1000;
     background: var(--intro-background);
-    transition: background-color 900ms ease-in-out; /* keep the same as TOPBAR_TIME in intro.js */
+    transition: background-color 900ms ease-in-out; /* same as TOPBAR_TIME in intro.js */
 }
 #scene.done {
     background-color: transparent;
@@ -252,8 +252,6 @@ body {
     -webkit-mask: radial-gradient(ellipse var(--lens-width) var(--lens-height) at 50% 50%, transparent var(--start), #000 calc(var(--start) + 8%));
             mask: radial-gradient(ellipse var(--lens-width) var(--lens-height) at 50% 50%, transparent var(--start), #000 calc(var(--start) + 8%));
 }
-
-/* --lens-width, --lens-height, each --start and each --blur are set in lens.js */
 
 #name {
     position: absolute;

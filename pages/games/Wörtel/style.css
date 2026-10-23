@@ -97,41 +97,26 @@ body[data-lang="de"] .only-en {
 
 /* back button */
 .back-button {
-    position: relative;
-    display: inline-block;
+    display: block;
+    width: fit-content;
     margin-left: clamp(8px, 3vw, 28px);
-    padding: 0.7em 1.5em;
+    padding: 0.7em 0.6em;
     color: var(--home-text);
-    font: 200 clamp(15px, 4.2vw, 20px) Palatino, 'Palatino Linotype', serif;
-    letter-spacing: 0.05em;
-    text-decoration: none;
-    white-space: nowrap;
-    isolation: isolate;
-    transition: box-shadow 300ms ease;
+    font-size: clamp(15px, 4.2vw, 20px);
+    transition: transform 200ms ease;
 }
-/* border */
-.back-button::before {
-    content: "";
-    position: absolute;
-    inset: -1px;
-    z-index: -1;
-    border: 1px solid var(--home-border);
-    transition: border-color 300ms ease;
+.back-arrow {
+    display: block;
+    width: 1.2em;
+    height: 1.2em;
 }
-/* glow and darker border */
 .back-button:focus-visible {
     outline: none;
-    box-shadow: 0 0 12px var(--home-glow);
-}
-.back-button:focus-visible::before {
-    border-color: var(--home-text);
+    transform: scale(1.15);
 }
 @media (hover: hover) { /* phones keep hover after a tap */
     .back-button:hover {
-        box-shadow: 0 0 12px var(--home-glow);
-    }
-    .back-button:hover::before {
-        border-color: var(--home-text);
+        transform: scale(1.15);
     }
 }
 
