@@ -69,11 +69,14 @@ const TRAIL_ALPHA = 0.6;      // 0-1     opacity of newest part of a trail
 const TRAIL_FADE_STEPS = 10;  // count   number of brightness levels in the trail, more = smoother fading
 
 // GLOW
-const TRAIL_GLOW_STEPS = 3;      // count   how many of the newest brightness levels of a trail glow
-const POINT_GLOW_SIZE = 0.0057;  // ratio   radius of glow around points (8px on a 1990x992 window)
-const POINT_GLOW_STRENGTH = 0.6; // 0-1     brightness of point
-const TRAIL_GLOW_SIZE = 0.0043;  // ratio   width of the glow around trails, (6px on a 1990x992 window)
-const TRAIL_GLOW_STRENGTH = 0.2; // 0-1     brightness of trail
+const TRAIL_GLOW_STEPS = 3;       // count   how many of the newest brightness levels of a trail glow
+const POINT_GLOW_SIZE = 0.0057;   // ratio   radius of glow around points (8px on a 1990x992 window)
+const POINT_GLOW_STRENGTH = 0.6;  // 0-1     brightness of point
+const TRAIL_GLOW_SIZE = 0.0043;   // ratio   width of the glow around trails, (6px on a 1990x992 window)
+const TRAIL_GLOW_STRENGTH = 0.2;  // 0-1     brightness of trail
+
+// DOTS
+const DOT_IMAGE_SIZES = [2, 4, 8, 16, 32, 64]; // px   widths points are drawn at
 
 // CANVAS
 const MAX_INTRO_PIXEL_RATIO = 1.5; // ratio   maximum number of canvas pixels per screen pixel while animating
@@ -273,32 +276,37 @@ for (let i = 0; i < pointCount; i++) {
     points.push({
         burstEnd,
         driftCurve: { c2: randomNear(driftEnd, DRIFT_REACH), end: driftEnd }, // second control point and end of bezier curve
-        trail: [] // all points in the trail, oldest first, { x, y, z, time }
+        trail: [] // all points in the trail, oldest first
     });
 }
 
 // draw points onto target
 function drawPoints(target) {
     const screenSize = Math.sqrt(width * height);
+    const splitting = introStrength > 0 && LENS_OFFSET > 0;
+
+    // size and color split of each point
+    for (const point of points) {
+        if (!point.visible) continue;
+        point.depthScale = clamp(0.3, 4, camera.homeDistance / point.depth); // scale with window size
+        if (splitting) point.split = lensSplit(point.x, point.y, introStrength);
+    }
 
     // glow
     if (POINT_GLOW_SIZE > 0 && POINT_GLOW_STRENGTH > 0) {
         target.globalCompositeOperation = "lighter";
         target.globalAlpha = POINT_GLOW_STRENGTH;
-        const splitting = introStrength > 0 && LENS_OFFSET > 0;
         for (const point of points) {
             if (!point.visible) continue;
 
-            // scale with window size
-            const depthScale = clamp(0.3, 4, camera.homeDistance / point.depth)
-            const size = POINT_GLOW_SIZE * screenSize * depthScale;
+            const size = POINT_GLOW_SIZE * screenSize * point.depthScale;
             if (!splitting) {
                 target.drawImage(glowSprite, point.x - size, point.y - size, size * 2, size * 2);
                 continue;
             }
 
             // chromatic aberration toward the edges
-            const split = lensSplit(point.x, point.y, introStrength);
+            const split = point.split;
             for (let channel = 0; channel < 3; channel++) {
                 const side = 1 - channel; // red 1, green 0, blue -1
                 const x = point.x + split.x * side;
@@ -310,20 +318,13 @@ function drawPoints(target) {
     }
 
     // draw the points
+    const ratio = target.getTransform().a; // canvas pixels per screen pixel
     target.globalAlpha = 1;
-    if (introStrength <= 0 || LENS_OFFSET <= 0) {
-        target.fillStyle = colors.text;
-        target.beginPath();
+    if (!splitting) {
         for (const point of points) {
             if (!point.visible) continue;
-
-            // scale with windo
-            const depthScale = clamp(0.3, 4, camera.homeDistance / point.depth)
-            const radius = POINT_RADIUS * screenSize * depthScale;
-            target.moveTo(point.x + radius, point.y);
-            target.arc(point.x, point.y, radius, 0, Math.PI * 2);
+            stampDot(target, dotImages.text, point.x, point.y, POINT_RADIUS * screenSize * point.depthScale, ratio);
         }
-        target.fill();
         return;
     }
 
@@ -331,74 +332,80 @@ function drawPoints(target) {
     target.globalCompositeOperation = "lighter";
     for (let channel = 0; channel < 3; channel++) {
         const side = 1 - channel; // red 1, green 0, blue -1
-        target.fillStyle = colors.textChannels[channel];
-        target.beginPath();
         for (const point of points) {
             if (!point.visible) continue;
 
-            const depthScale = clamp(0.3, 4, camera.homeDistance / point.depth)
-            const radius = POINT_RADIUS * screenSize * depthScale;
-            const split = side === 0 ? { x: 0, y: 0 } : lensSplit(point.x, point.y, introStrength);
-            const x = point.x + split.x * side;
-            const y = point.y + split.y * side;
-            target.moveTo(x + radius, y);
-            target.arc(x, y, radius, 0, Math.PI * 2);
+            const x = point.x + point.split.x * side;
+            const y = point.y + point.split.y * side;
+            stampDot(target, dotImages.channels[channel], x, y, POINT_RADIUS * screenSize * point.depthScale, ratio);
         }
-        target.fill();
     }
     target.globalCompositeOperation = "source-over";
 }
 
-// update points
-function updatePoints(burstTime) {
+// the parts of point's path that don't change over time
+function pointPath(point) {
     const startPose = camera.start;
     const pixelsToWorld = startPose.distance / camera.focal;
 
-    for (const point of points) {
-        const burstEndTime = BURST_TIME * point.slowness;
-        const driftEndTime = burstEndTime + DRIFT_TIME;
-        const formDuration = FORM_TIME * point.slowness;
+    const burstEndTime = BURST_TIME * point.slowness;
+    const formDuration = FORM_TIME * point.slowness;
 
-        // where it bursts from
-        const across = point.startX * pixelsToWorld;
-        const down   = point.startY * pixelsToWorld;
-        const start = {
-            x: startPose.right.x * across - startPose.up.x * down,
-            y: startPose.right.y * across - startPose.up.y * down,
-            z: startPose.right.z * across - startPose.up.z * down
-        };
+    // where it bursts from
+    const across = point.startX * pixelsToWorld;
+    const down   = point.startY * pixelsToWorld;
+    const start = {
+        x: startPose.right.x * across - startPose.up.x * down,
+        y: startPose.right.y * across - startPose.up.y * down,
+        z: startPose.right.z * across - startPose.up.z * down
+    };
+
+    // first control point for drift, starting at the burst end speed
+    const push = BURST_END_SPEED*DRIFT_TIME / (3*DRIFT_START_SPEED*burstEndTime);
+
+    // form continues drifting curve's direction
+    const carry = (2 - DRIFT_START_SPEED) * formDuration / (2 * DRIFT_TIME);
+
+    return {
+        pose: startPose,
+        burstEndTime: burstEndTime,
+        driftEndTime: burstEndTime + DRIFT_TIME,
+        formDuration: formDuration,
+        start: start,
+        c1: continuePast(start, point.burstEnd, push),
+        f1: continuePast(point.driftCurve.c2, point.driftCurve.end, carry),
+        target: { x: point.targetX, y: point.targetY, z: 0 }
+    };
+}
+
+// update points
+function updatePoints(burstTime) {
+    for (const point of points) {
+        if (!point.path || point.path.pose !== camera.start) point.path = pointPath(point);
+        const path = point.path;
         const burstEnd = point.burstEnd; // end of burst
         const driftCurve = point.driftCurve;
-
-        // add first control point for drift, starting at the burst end speed
-        const push = BURST_END_SPEED*DRIFT_TIME / (3*DRIFT_START_SPEED*burstEndTime);
-        const c1 = continuePast(start, burstEnd, push);
 
         let pos;
 
         // state in which particle is
-        if (burstTime < burstEndTime) {
+        if (burstTime < path.burstEndTime) {
             // burst - fast at first, slow to end speed at destination
-            const t = burstTime / burstEndTime;
+            const t = burstTime / path.burstEndTime;
             const eased = (1 - BURST_END_SPEED) * (1 - Math.pow(1-t, 4)) + BURST_END_SPEED*t;
-            pos = lerp3(start, burstEnd, eased);
+            pos = lerp3(path.start, burstEnd, eased);
 
-        } else if (burstTime < driftEndTime) {
+        } else if (burstTime < path.driftEndTime) {
             // drift: begin like burst end, keep getting faster
-            const t = (burstTime - burstEndTime) / DRIFT_TIME;
+            const t = (burstTime - path.burstEndTime) / DRIFT_TIME;
             const eased = DRIFT_START_SPEED*t + (1 - DRIFT_START_SPEED)*t*t;
-            pos = bezier3d(burstEnd, c1, driftCurve.c2, driftCurve.end, eased);
+            pos = bezier3d(burstEnd, path.c1, driftCurve.c2, driftCurve.end, eased);
 
         } else {
             // form: begin like drift end, go the same way at same speed, then slow into destination
-            const t = clamp(0, 1, (burstTime - driftEndTime) / formDuration);
+            const t = clamp(0, 1, (burstTime - path.driftEndTime) / path.formDuration);
             const eased = 1 - (1-t)*(1-t);
-
-            // continue drifting curve's direction
-            const carry = (2 - DRIFT_START_SPEED) * formDuration / (2 * DRIFT_TIME);
-            const f1 = continuePast(driftCurve.c2, driftCurve.end, carry);
-            const target = { x: point.targetX, y: point.targetY, z: 0 };
-            pos = bezier3d(driftCurve.end, f1, target, target, eased);
+            pos = bezier3d(driftCurve.end, path.f1, path.target, path.target, eased);
         }
 
         // update
@@ -802,14 +809,16 @@ function drawTrails(burstTime) {
 
     // add segment to trails
     for (const point of points) {
-        // the trail, then the point itself as its newest end 
-        const ends = point.trail.concat({ ...point.world, time: burstTime });
-
-        for (let i = 1; i < ends.length; i++) {
-            const a = project(ends[i-1]);
-            const b = project(ends[i]);
-            const age = burstTime - (ends[i-1].time + ends[i].time) / 2; // average age of two ends of segments
-            if (a && b) addSegment(a, b, age);
+        const trail = point.trail;
+        let previous = trail.length > 0 ? project(trail[0]) : null;
+        for (let i = 1; i <= trail.length; i++) {
+            const newest  = i === trail.length;
+            const end     = newest ? point.world : trail[i];
+            const endTime = newest ? burstTime   : trail[i].time;
+            const next = project(end);
+            const age = burstTime - (trail[i-1].time + endTime) / 2; // average age of two ends of segments
+            if (previous && next) addSegment(previous, next, age);
+            previous = next;
         }
     }
 
@@ -889,10 +898,39 @@ function makeGlowSprite(color) {
     return sprite;
 }
 
-// the intro's colors, from style.css
+// draw a filled circle in every DOT_IMAGE_SIZE
+function makeDotImages(color) {
+    return DOT_IMAGE_SIZES.map(function (size) {
+        const image = document.createElement("canvas");
+        image.width  = size + 2;
+        image.height = size + 2;
+        const imageCtx = image.getContext("2d");
+        imageCtx.fillStyle = color;
+        imageCtx.beginPath();
+        imageCtx.arc(size / 2 + 1, size / 2 + 1, size / 2, 0, Math.PI * 2);
+        imageCtx.fill();
+        return image;
+    });
+}
+
+// draw a dot
+function stampDot(target, images, x, y, radius, ratio) {
+    const needed = 2 * radius * ratio; // width in canvas pixels
+    let image = images[images.length - 1];
+    for (const candidate of images) {
+        if (candidate.width - 2 >= needed) {
+            image = candidate;
+            break;
+        }
+    }
+    const half = radius * image.width / (image.width - 2);
+    target.drawImage(image, x - half, y - half, half * 2, half * 2);
+}
+
 let colors = null;
 let glowSprite = null;
-let glowSprites = null; // red, green and blue parts of the glow
+let glowSprites = null; // rgb parts of the glow
+let dotImages = null;   // dots in text color, and in rgb parts
 function readColors() {
     const style = getComputedStyle(document.documentElement);
     colors = {
@@ -906,6 +944,10 @@ function readColors() {
     colors.trailChannels = splitChannels(colors.trail);
     glowSprite = makeGlowSprite(colors.glow);
     glowSprites = splitChannels(colors.glow).map(makeGlowSprite);
+    dotImages = {
+        text: makeDotImages(colors.text),
+        channels: colors.textChannels.map(makeDotImages)
+    };
 }
 
 // a color as its parts
