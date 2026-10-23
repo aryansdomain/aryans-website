@@ -62,7 +62,7 @@ const NEAR_CLIP = 0.02; // text-widths points closer to the camera than this are
 
 // TRAILS
 const TRAIL_DURATION = 500;   // ms      time a position stays in a trail, roughly the length of the trail
-const TRAIL_MIN_TIME = 10;    // ms      how often a new trail position is recorded
+const TRAIL_POSITIONS = 15;   // count   most positions kept in a trail, fewer -> faster but more angular
 const TRAIL_MIN_DISTANCE = 5; // px      pixels a point must move before recording again
 const TRAIL_WIDTH = 1;        // px      number of pixels in trail lines
 const TRAIL_ALPHA = 0.6;      // 0-1     opacity of newest part of a trail
@@ -866,7 +866,7 @@ function updateTrails(burstTime) {
 
         // only add if time passed and point moved enough
         const world = point.world;
-        const timeEnough = !last                   || burstTime - last.time                                                                    >= TRAIL_MIN_TIME;
+        const timeEnough = !last                   || burstTime - last.time                                                                    >= TRAIL_DURATION / TRAIL_POSITIONS;
         const moveEnough = !last || !point.visible || (Math.hypot(world.x-last.x, world.y-last.y, world.z-last.z) * camera.focal / point.depth >= TRAIL_MIN_DISTANCE);
         if (timeEnough && moveEnough) {
             trail.push({ x: world.x, y: world.y, z: world.z, time: burstTime });
