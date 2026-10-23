@@ -24,7 +24,6 @@ const CURSOR_SPEEDUP = 5; // ratio   how much faster than wandering dots are whe
 const CURSOR_CALM = 600;  // ms      how quickly fleeing dots slow back down to wandering
 
 // CHROMATIC ABERRATION
-const CHROMA_OFFSET = 1; // px    how far colors split from a dot
 const CHROMA_EASE = 150; // ms    how quickly color split follows the dot
 
 
@@ -101,7 +100,7 @@ function showDots() {
             turningBack: false, // is it turning back from an edge
             boost: 0, // extra speed from fleeing the cursor, as a ratio of wander speed
             chroma: 0, // how split the color channels are
-            chromaAngle: 0 // which way the channels split, away from the closest boundary
+            chromaAngle: 0 // which way the channels split, away from the middle
         });
     }
     startDotLoop();
@@ -136,8 +135,8 @@ function moveDot(dot, dt) {
     }
 
     // color channels split
-    let chroma      = lensAmount(dot.x, dot.y) * LENS_OFFSET;
-    let chromaAngle = lensAngle (dot.x, dot.y);
+    const chroma      = lensAmount(dot.x, dot.y) * LENS_OFFSET;
+    const chromaAngle = lensAngle (dot.x, dot.y);
 
     // near the cursor, turn away from it and speed up, calm down after
     dot.boost *= Math.exp(-dt / CURSOR_CALM);
@@ -148,12 +147,6 @@ function moveDot(dot, dt) {
             const awayFromCursor = Math.atan2(dot.y - cursor.y, dot.x - cursor.x);
             steerToward(dot, awayFromCursor, nearCursor, CURSOR_STEER, seconds);
             dot.boost = Math.max(dot.boost, CURSOR_SPEEDUP * nearCursor);
-
-            // cursor splits it more
-            if (Math.min(1, nearCursor) * CHROMA_OFFSET > chroma) {
-                chroma = Math.min(1, nearCursor) * CHROMA_OFFSET;
-                chromaAngle = awayFromCursor;
-            }
         }
     }
 
