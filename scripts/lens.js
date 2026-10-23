@@ -9,6 +9,8 @@ const LENS_FULL = 0.7;  // ratio   how far out on the oval things are fully blur
 const LENS_OFFSET = 5; // px      how far red and blue split apart when fully out on the oval
 const LENS_BLUR = 2.5; // px      how blurred things are fully out on the oval, less further in
 
+const LENS_GRID = 128; // count   the color split is calculated for these pixels
+
 
 
 // ------------------------ LENS ------------------------
@@ -29,12 +31,34 @@ function lensAngle(x, y) {
 
 
 
+// calculate split at each cell
+let lensGrid = null;
+function buildLensGrid() {
+    const width  = window.innerWidth;
+    const height = window.innerHeight;
+    const splitX = new Float32Array(LENS_GRID * LENS_GRID);
+    const splitY = new Float32Array(LENS_GRID * LENS_GRID);
+
+    for (let row = 0; row < LENS_GRID; row++) {
+        for (let column = 0; column < LENS_GRID; column++) {
+            const x = (column + 0.5) * width  / LENS_GRID;
+            const y = (row    + 0.5) * height / LENS_GRID;
+            const amount = lensAmount(x, y);
+            const angle  = lensAngle(x, y);
+            splitX[row * LENS_GRID + column] = Math.cos(angle) * LENS_OFFSET * amount;
+            splitY[row * LENS_GRID + column] = Math.sin(angle) * LENS_OFFSET * amount;
+        }
+    }
+    lensGrid = { width, height, splitX, splitY };
+}
+
 // how far red and blue move
 function lensSplit(x, y, strength) {
-    const amount = lensAmount(x, y) * strength;
-    if (amount === 0) return { x: 0, y: 0 };
-    const angle = lensAngle(x, y);
-    return { x: Math.cos(angle) * LENS_OFFSET * amount, y: Math.sin(angle) * LENS_OFFSET * amount };
+    if (strength === 0) return { x: 0, y: 0 };
+    const column = Math.min(LENS_GRID - 1, Math.max(0, Math.floor(x / lensGrid.width  * LENS_GRID)));
+    const row    = Math.min(LENS_GRID - 1, Math.max(0, Math.floor(y / lensGrid.height * LENS_GRID)));
+    const i = row * LENS_GRID + column;
+    return { x: lensGrid.splitX[i] * strength, y: lensGrid.splitY[i] * strength };
 }
 
 // move smoothly
@@ -202,5 +226,7 @@ function lensFrame() {
     updateBoxLenses();
     requestAnimationFrame(lensFrame);
 }
+buildLensGrid();
+window.addEventListener("resize", buildLensGrid);
 requestAnimationFrame(lensFrame);
 placeLensBlur();
