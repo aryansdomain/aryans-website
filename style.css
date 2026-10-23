@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap');
 
-/* TODO: ORGANIZE */
+/* ------------------------ SHARED ------------------------ */
 
 :root {
     /* fonts */
@@ -42,6 +42,10 @@ body {
     overflow: hidden;
 }
 
+
+
+/* ------------------------ INTRO ------------------------ */
+
 /* intro animation */
 #scene {
     position: fixed;
@@ -55,6 +59,10 @@ body {
 #scene.done {
     background-color: transparent;
 }
+
+
+
+/* ------------------------ HOME ------------------------ */
 
 /* main page */
 #home {
@@ -109,37 +117,7 @@ body {
     will-change: transform;
 }
 
-/* liquid shapes for subcategories */
-#liquid-layer {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    overflow: visible;
-    pointer-events: none;
-}
-
-/* colors of liquid filter*/
-#liquid-filter .liquid-fill {
-    flood-color: var(--background);
-}
-
-
-/* hover glow around subboxes */
-#subbox-glow .glow-fill {
-    flood-color: var(--glow);
-}
-
-
-/* chromatic abberation */
-#liquid-layer .channel-1 {
-    flood-color: var(--channel-1);
-}
-#liquid-layer .channel-2 {
-    flood-color: var(--channel-2);
-}
-
-
+/* ring of boxes */
 .ring {
     --radius: min(24vw, 24vh, calc((100dvh - var(--name-space)) / 2 - var(--box-clear)));
     position: relative;
@@ -198,11 +176,46 @@ body {
     --written: 110%; /* past the end */
 }
 
-/* liquid */
+
+
+/* ------------------------ LIQUID ------------------------ */
+
 .category.liquid::before,
 .category.liquid span {
     visibility: hidden;
 }
+.category.liquid {
+    box-shadow: none !important;
+}
+
+/* liquid shapes for subcategories */
+#liquid-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+}
+
+/* colors of liquid filter */
+#liquid-filter .liquid-fill {
+    flood-color: var(--background);
+}
+
+/* hover glow around subboxes */
+#subbox-glow .glow-fill {
+    flood-color: var(--glow);
+}
+
+/* chromatic aberration */
+#liquid-layer .channel-1 {
+    flood-color: var(--channel-1);
+}
+#liquid-layer .channel-2 {
+    flood-color: var(--channel-2);
+}
+
 /* clicked subbox grows to edges of screen */
 .open-frame {
     position: fixed;
@@ -231,10 +244,6 @@ body {
     transform: translateX(-50%);
     font-weight: 700;
     opacity: 0;
-}
-
-.category.liquid {
-    box-shadow: none !important;
 }
 
 /* lens: blur stuff behind it */
