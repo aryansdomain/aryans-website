@@ -383,6 +383,9 @@ body {
     background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
     transition: background-size 400ms ease;
 }
+.text p a:visited {
+    color: LinkText; /* not purple on visited */
+}
 .text p a:hover,
 .text p a:focus-visible {
     outline: none;
