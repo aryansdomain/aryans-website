@@ -29,7 +29,7 @@
     --text-side: clamp(16px, 5vw, 32px); /* space between the sides of the screen and text */
 
     --text-lens-blur: 2.5px;  /* how blurred dots are behind text (same as LENS_BLUR in oval.js) */
-    --text-fade: 32px;        /* how far text fades out at the top and bottom */
+    --text-fade: 16px;        /* how far text fades out at the top and bottom */
 }
 
 body {
