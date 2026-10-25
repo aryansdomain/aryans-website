@@ -1,30 +1,30 @@
 // ------------------------ SETTINGS ------------------------
 
-const DOTS_PER_PIXEL = 0.000405; // dots/px   dots wandering background per pixel of window (800 on a 1990x992 window)
-const DOT_RADIUS = 1.5;          // px
-const DOT_MIN_ALPHA = 0.15;      // 0-1       faintest a dot can be
+const DOTS_PER_PIXEL = 0.000405; // dots wandering background per pixel of window (800 on a 1990x992 window)
+const DOT_RADIUS = 1.5;
+const DOT_MIN_ALPHA = 0.15;      // faintest a dot can be
 
 // APPEAR
-const APPEAR_START = 0.1; // ratio   fraction of the dot spread time when the first dot appears
-const APPEAR_END = 0.9;   // ratio   fraction of the dot spread time when the last  dot appears
-const DOT_FADE_IN = 800;  // ms      time each dot takes to fade in
+const APPEAR_START = 0.1; // fraction of the dot spread time when the first dot appears
+const APPEAR_END = 0.9;   // fraction of the dot spread time when the last  dot appears
+const DOT_FADE_IN = 800;  // time each dot takes to fade in
 
 // WANDER
-const WANDER_SPEED = 35;    // px/s
-const WANDER_VARIETY = 0.6; // ratio   how much wander speed differs between dots
-const WANDER_TURN = 1.2;    // rad/s   fastest dots turn while wandering
-const WANDER_JITTER = 4;    //         how often a dot changes which way it's turning, higher -> wigglier
-const EDGE_MARGIN = 60;     // px      how close to edges the dots get before turning back
-const EDGE_STEER = 3;       //         how hard dots turn back from edges
-const EDGE_TOLERANCE = 40;  // px      how far past EDGE_MARGIN a dot may go before turning
+const WANDER_SPEED = 35;
+const WANDER_VARIETY = 0.6; // how much wander speed differs between dots
+const WANDER_TURN = 1.2;    // fastest dots turn while wandering
+const WANDER_JITTER = 4;    // how often a dot changes which way it's turning, higher -> wigglier
+const EDGE_MARGIN = 60;     // how close to edges the dots get before turning back
+const EDGE_STEER = 3;       // how hard dots turn back from edges
+const EDGE_TOLERANCE = 40;  // how far past EDGE_MARGIN a dot may go before turning
 
-const CURSOR_MARGIN = 80; // px      how close to the cursor dots get before turning away
-const CURSOR_STEER = 200; //         how hard dots turn away from the cursor
-const CURSOR_SPEEDUP = 5; // ratio   how much faster than wandering dots are when at the cursor
-const CURSOR_CALM = 600;  // ms      how quickly fleeing dots slow back down to wandering
+const CURSOR_MARGIN = 80; // how close to the cursor dots get before turning away
+const CURSOR_STEER = 200; // how hard dots turn away from the cursor
+const CURSOR_SPEEDUP = 5; // how much faster than wandering dots are when at the cursor
+const CURSOR_CALM = 600;  // how quickly fleeing dots slow back down to wandering
 
 // CHROMATIC ABERRATION
-const CHROMA_EASE = 150; // ms    how quickly color split follows the dot
+const CHROMA_EASE = 150; // how quickly color split follows the dot
 
 // AROUND TEXT
 const LENS_TEXT = ".text, .topbar-title"; // text that dots blur and split around

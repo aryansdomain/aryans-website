@@ -1,10 +1,10 @@
 // ------------------------ SETTINGS ------------------------
 
 // LAYOUT
-const SUBBOX_SCALE = 0.8;        //      size of subboxes compared to their box
-const SUBBOX_GAP = 24;           // px   space between subboxes
-const FIRST_SUBBOX_GAP = 56;     // px   space between a box and its first subbox
-const MIN_FIRST_SUBBOX_GAP = 16; // px   smallest that space shrinks to in emergencies (longest subbox is still too close to the screen's edge)
+const SUBBOX_SCALE = 0.8;        // size of subboxes compared to their box
+const SUBBOX_GAP = 24;           // space between subboxes
+const FIRST_SUBBOX_GAP = 56;     // space between a box and its first subbox
+const MIN_FIRST_SUBBOX_GAP = 16; // smallest that space shrinks to in emergencies (longest subbox is still too close to the screen's edge)
 
 
 

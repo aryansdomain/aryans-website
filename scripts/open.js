@@ -1,8 +1,8 @@
 // ------------------------ SETTINGS ------------------------
 
-const OPEN_TIME = 700;        // ms   time a clicked subbox's border takes to grow to the edges of the screen
-const OPEN_BORDER_FADE = 0.7; //      how far the box has grown when its border starts fading away
-const NAME_FADE = 0.3;        //      how far the name has grown when label has faded in
+const OPEN_TIME = 700;        // time a clicked subbox's border takes to grow to the edges of the screen
+const OPEN_BORDER_FADE = 0.7; // how far the box has grown when its border starts fading away
+const NAME_FADE = 0.3;        // how far the name has grown when label has faded in
 
 // pages whose title comes there from the corresponding box/subbox
 const titlePages = ["about/", "blog/", "projects/IGCSE_IDE/", "games/Wörtel/", "games/Polybends/"];

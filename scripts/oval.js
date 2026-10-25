@@ -1,13 +1,13 @@
 // ------------------------ SETTINGS ------------------------
 
 // the lens oval, for blur and chromatic aberration
-const LENS_WIDTH = 0.7;  // ratio   how far the oval reaches across from the middle, of the screen's width
-const LENS_HEIGHT = 0.6; // ratio   how far the oval reaches up and down from the middle, of the screen's height
-const LENS_START = 0.4;  // ratio   how far out on the oval things start blurring and splitting
-const LENS_FULL = 0.7;   // ratio   how far out on the oval things are fully blurred and split
+const LENS_WIDTH = 0.7;  // how far the oval reaches across from the middle, of the screen's width
+const LENS_HEIGHT = 0.6; // how far the oval reaches up and down from the middle, of the screen's height
+const LENS_START = 0.4;  // how far out on the oval things start blurring and splitting
+const LENS_FULL = 0.7;   // how far out on the oval things are fully blurred and split
 
-const LENS_OFFSET = 5; // px   how far red and blue split apart when fully out on the oval
-const LENS_BLUR = 2.5; // px   how blurred things are fully out on the oval, less further in
+const LENS_OFFSET = 5; // how far red and blue split apart when fully out on the oval
+const LENS_BLUR = 2.5; // how blurred things are fully out on the oval, less further in
 
 const LENS_GRID = 128; // color split is calculated for this number of pixels
 

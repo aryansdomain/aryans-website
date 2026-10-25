@@ -1,6 +1,6 @@
 // ------------------------ SETTINGS ------------------------
 
-const LIQUID_BLUR = 1; // px   how far apart shapes can be and still join
+const LIQUID_BLUR = 1; // how far apart shapes can be and still join
 
 
 

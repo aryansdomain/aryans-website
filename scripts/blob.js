@@ -1,8 +1,8 @@
 // ------------------------ SETTINGS ------------------------
 
-const EXTEND_TIME  = 600; // ms   time subboxes take to come out of  their box
-const RETRACT_TIME = 450; // ms   time subboxes take to go back into their box
-const LABEL_TIME   = 300; // ms   time labels take to fade in or out
+const EXTEND_TIME  = 600; // time subboxes take to come out of  their box
+const RETRACT_TIME = 450; // time subboxes take to go back into their box
+const LABEL_TIME   = 300; // time labels take to fade in or out
 
 const EXTEND_BOX_AT   = 0.4; // fraction of extending time at which the blob has become a rectangle
 const RETRACT_BLOB_AT = 0.9; // fraction of retracting time at which the subbox has become a blob
@@ -11,8 +11,8 @@ const RESHAPE_TIME    = 0.2; // fraction of extending or retracting time spent c
 const BLOB_SIZE = 1; // diameter of blob between box and subbox, compared to its subbox's height
 
 // SUSPENDING
-const SUSPEND_DRIFT = 5;     // px   how far subboxes drift while hanging there
-const SUSPEND_PERIOD = 3800; // ms   time one drift loop takes
+const SUSPEND_DRIFT = 5;     // how far subboxes drift while hanging there
+const SUSPEND_PERIOD = 3800; // time one drift loop takes
 
 
 

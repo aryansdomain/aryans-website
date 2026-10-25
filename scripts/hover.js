@@ -1,6 +1,6 @@
 // ------------------------ SETTINGS ------------------------
 
-const SUBBOX_HOVER_TIME = 300; // ms   time hover glow takes to fade in or out (same as box-shadow transition in style.css)
+const SUBBOX_HOVER_TIME = 300; // time hover glow takes to fade in or out (same as box-shadow transition in style.css)
 
 
 

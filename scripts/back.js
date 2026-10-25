@@ -1,6 +1,6 @@
 // ------------------------ SETTINGS ------------------------
 
-const LAUNCH_TIME = 250; // ms   time the back button takes to fly to the left before leaving (same as .back-button.launching in style.css)
+const LAUNCH_TIME = 250; // time the back button takes to fly to the left before leaving (same as .back-button.launching in style.css)
 
 
 
