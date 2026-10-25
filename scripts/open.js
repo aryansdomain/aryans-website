@@ -5,7 +5,7 @@ const OPEN_BORDER_FADE = 0.7; //      how far the box has grown when its border 
 const NAME_FADE = 0.3;        //      how far the name has grown when label has faded in
 
 // pages whose title comes there from the corresponding box/subbox
-const titlePages = ["pages/games/Wörtel/", "pages/about/", "pages/projects/IGCSE_IDE/", "pages/blog/"];
+const titlePages = ["games/Wörtel/", "about/", "projects/IGCSE_IDE/", "blog/"];
 
 function titleSpot() {
     const titleTop   = clamp(8,  40,   0.04  * window.innerHeight); // --title-top
@@ -167,8 +167,5 @@ window.addEventListener("pageshow", function (event) {
     if (!event.persisted || openFrame === null) return;
     openFrame.remove();
     openFrame = null;
-    // the drawn name
-    const scene = document.getElementById("scene");
-    scene.style.opacity = "";
-    scene.style.zIndex  = "";
+    document.getElementById("scene").style.visibility = "";
 });

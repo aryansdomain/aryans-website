@@ -634,5 +634,3 @@ function frame(now) {
 reframe();
 openFromHash();
 requestAnimationFrame(frame);
-
-// todo add an info thing that says you need mathjacx

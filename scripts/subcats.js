@@ -18,12 +18,12 @@ const subcats = {
 };
 
 // boxes with no subcategories open directly
-const boxLinks = { blog: "pages/blog/" };
+const boxLinks = { blog: "blog/" };
 
 // pages subcategories open
 const subcatLinks = {
-    projects: { "IGCSE IDE": "pages/projects/IGCSE_IDE/" },
-    games: { "Wörtel": "pages/games/Wörtel/" }
+    projects: { "IGCSE IDE": "projects/IGCSE_IDE/" },
+    games: { "Wörtel": "games/Wörtel/" }
 };
 
 function getSubcats(box) {
