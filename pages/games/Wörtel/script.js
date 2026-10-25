@@ -256,14 +256,6 @@ function updateKeyUI(letter, state) {
     key.setAttribute('data-state', state);
 }
 
-// back button
-document.querySelector('.back-button').addEventListener('click', function (event) {
-    if (document.referrer && new URL(document.referrer).origin === location.origin) {
-        event.preventDefault();
-        history.back();
-    }
-});
-
 // language, english unless switched in settings
 let lang = 'en';
 try { if (localStorage.getItem('wortel_lang') === 'de') lang = 'de'; } catch (error) {}

@@ -362,6 +362,24 @@ body > #lens {
 }
 
 /* back button */
+@property --drift-phase { /* how far it goes in one drift loop */
+    syntax: "<number>";
+    inherits: false;
+    initial-value: 0;
+}
+@property --drift { /* how far it drifts */
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0px;
+}
+@property --wind-up { /* how far right it goes before launching left */
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0px;
+}
+@keyframes back-drift {
+    to { --drift-phase: 1; }
+}
 .back-button {
     display: block;
     width: fit-content;
@@ -369,7 +387,33 @@ body > #lens {
     padding: 0.5em 0.4em;
     color: var(--home-text);
     font-size: clamp(15px, 4.2vw, 20px);
-    transition: transform 200ms ease;
+
+    /* drifts in a figure eight like the subboxes, only when --drift isn't 0 */
+    translate:
+        calc(var(--wind-up) + sin(var(--drift-phase) * 1turn) * var(--drift))
+        calc(sin(var(--drift-phase) * 2turn) * var(--drift) / 2);
+    animation: back-drift 3800ms linear infinite; /* same as SUSPEND_PERIOD in blob.js */
+
+    /* chromatic trail behind it, hidden until hovered */
+    filter: drop-shadow(0 0 0 transparent) drop-shadow(0 0 0 transparent);
+    transition: --drift 400ms ease, --wind-up 300ms ease, filter 300ms ease;
+}
+/* pull back and drift, with a trail of colors to the right */
+.back-button:hover,
+.back-button:focus-visible {
+    outline: none;
+    --drift: 1.5px;
+    --wind-up: 4px;
+    /* second shadow copies the first too, so channel-2 is 2px behind and channel-1 is 4px behind */
+    filter: drop-shadow(2px 0 0 var(--channel-2)) drop-shadow(2px 0 0 color-mix(in srgb, var(--channel-1) 50%, transparent));
+}
+/* launch left when clicked */
+.back-button.launching {
+    --drift: 0px;
+    --wind-up: -60px;
+    opacity: 0;
+    filter: drop-shadow(8px 0 0 var(--channel-2)) drop-shadow(8px 0 0 color-mix(in srgb, var(--channel-1) 50%, transparent));
+    transition: --drift 250ms ease, --wind-up 250ms cubic-bezier(0.5, 0, 1, 0.5), filter 250ms ease-in, opacity 150ms ease-in 100ms; /* same as LAUNCH_TIME in back.js */
 }
 .back-button::before {
     content: "";
@@ -379,11 +423,6 @@ body > #lens {
     background: currentColor;
     -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19 12H5M11 6l-6 6 6 6' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
             mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19 12H5M11 6l-6 6 6 6' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
-}
-.back-button:hover,
-.back-button:focus-visible {
-    outline: none;
-    transform: scale(1.25);
 }
 
 /* text */
@@ -433,5 +472,3 @@ body > #lens {
     outline: none;
     background-size: 100% 1px;
 }
-
-/* TODO: back button should, instead of getting larger on hover, do something like chromatically abberate itself or drift like the subboxes? move right a little bit to anticipate the leftward movement that happens when it is clicked, like a rocket, maybe leaving a trail of chromatic colors. also on hover, drift slightly for tension */ 

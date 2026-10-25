@@ -26,17 +26,6 @@ const entries = [
     { title: "Poly x Trig = Linear?", date: "2025-02-18", link: "2025feb18.html" }
 ];
 
-// TODO: remove dummy entries
-// for (let year = 2026; year <= 2045; year++) {
-//     for (let month = 1; month <= 12; month++) {
-//         if ((year * 7 + month) % 4 !== 0) continue;
-//         for (let i = 0; i < 1 + (year + month) % 3; i++) {
-//             const date = year + "-" + String(month).padStart(2, "0") + "-" + String(5 + 10 * i).padStart(2, "0");
-//             entries.push({ title: "Dummy Entry " + date, date: date, link: "#" });
-//         }
-//     }
-// }
-
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 
@@ -645,3 +634,5 @@ function frame(now) {
 reframe();
 openFromHash();
 requestAnimationFrame(frame);
+
+// todo add an info thing that says you need mathjacx
