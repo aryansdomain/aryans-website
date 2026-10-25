@@ -168,7 +168,7 @@ home.addEventListener("click", function (event) {
             openSubcat(shape);
             return;
         }
-        if (!box || box === focusedBox) unfocus();
+        unfocus(); // back to home
     }
 });
 
