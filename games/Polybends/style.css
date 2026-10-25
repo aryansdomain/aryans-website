@@ -1,0 +1,140 @@
+/* show dots setting off */
+body.hide-dots .rotate-dot {
+    display: none;
+}
+
+/* undo, redo, clear buttons */
+.canvas-tools {
+    position: absolute;
+    top: 8px;
+    right: clamp(8px, 3vw, 28px);
+    z-index: 1; /* over canvas */
+    display: flex;
+    gap: clamp(4px, 2vw, 16px); /* space between buttons */
+}
+.canvas-tool {
+    padding: 0.7em 0.6em;
+    border: 0;
+    background: none;
+    color: var(--home-border);
+    font: 200 clamp(15px, 4.2vw, 20px) var(--font-serif);
+    line-height: normal;
+    cursor: pointer;
+}
+.canvas-tool:hover,
+.canvas-tool:focus-visible {
+    outline: none;
+    color: var(--home-text);
+}
+.canvas-tool:disabled { /* nothing to undo/redo */
+    color: var(--home-border);
+    opacity: 0.35;
+    cursor: default;
+}
+
+.game {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    margin-top: clamp(4px, 1.5dvh, 16px); /* space between topbar and game */
+}
+
+/* pieces to drag out */
+.sidebar {
+    flex-shrink: 0;
+    width: clamp(100px, 16vw, 200px);
+    box-sizing: border-box;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+    border-right: 1px solid var(--box-border);
+}
+.sidebar-piece {
+    flex-shrink: 0;
+    max-width: 100%;
+    height: auto;
+    overflow: visible;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+
+/* canvas */
+.canvas {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    background-image:
+        linear-gradient(color-mix(in srgb, var(--text) 8%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--text) 8%, transparent) 1px, transparent 1px);
+    cursor: grab;
+    touch-action: none;
+}
+.canvas.scrolling {
+    cursor: grabbing;
+}
+
+/* shape preview in settings */
+.shape-preview {
+    display: block;
+    width: 100%;
+    height: 90px;
+    margin-top: 8px;
+    overflow: visible;
+}
+
+/* button on each arc of the preview */
+.arc-button {
+    fill: var(--background);
+    stroke: var(--box-border);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+    cursor: pointer;
+}
+.arc-button:hover {
+    fill: var(--home-text);
+    stroke: var(--home-text);
+}
+
+/* border of pieces */
+.sidebar-piece path,
+.shape-preview path,
+.piece path {
+    fill: var(--background);
+    stroke: var(--box-border);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+    transition: stroke 300ms ease;
+}
+.piece path {
+    fill: color-mix(in srgb, var(--text) 8%, var(--background)); /* placed pieces are a little darker */
+    stroke-width: 2;
+    cursor: grab;
+}
+.sidebar-piece:hover path,
+.piece:hover path {
+    stroke: var(--text);
+}
+
+/* drag the dot to rotate a piece */
+.rotate-dot {
+    fill: var(--background);
+    stroke: var(--box-border);
+    stroke-width: 1.5;
+    cursor: grab;
+    transition: stroke 300ms ease;
+}
+.rotate-dot:hover {
+    stroke: var(--text);
+}
+
+/* drag a piece outside of a sidebar */
+.dragging {
+    opacity: 0.6;
+    pointer-events: none;
+}

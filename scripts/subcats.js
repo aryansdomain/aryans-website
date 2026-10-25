@@ -14,7 +14,7 @@ const MIN_FIRST_SUBBOX_GAP = 16; // px   smallest that space shrinks to in emerg
 const subcats = {
     writing: ["Short Stories", "Poetry"],
     projects: ["IGCSE IDE"],
-    games: ["Wörtel"]
+    games: ["Wörtel", "Polybends"]
 };
 
 // boxes with no subcategories open directly
@@ -23,7 +23,7 @@ const boxLinks = { blog: "blog/" };
 // pages subcategories open
 const subcatLinks = {
     projects: { "IGCSE IDE": "projects/IGCSE_IDE/" },
-    games: { "Wörtel": "games/Wörtel/" }
+    games: { "Wörtel": "games/Wörtel/", "Polybends": "games/Polybends/" }
 };
 
 function getSubcats(box) {

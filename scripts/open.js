@@ -5,7 +5,7 @@ const OPEN_BORDER_FADE = 0.7; //      how far the box has grown when its border 
 const NAME_FADE = 0.3;        //      how far the name has grown when label has faded in
 
 // pages whose title comes there from the corresponding box/subbox
-const titlePages = ["games/Wörtel/", "about/", "projects/IGCSE_IDE/", "blog/"];
+const titlePages = ["about/", "blog/", "projects/IGCSE_IDE/", "games/Wörtel/", "games/Polybends/"];
 
 function titleSpot() {
     const titleTop   = clamp(8,  40,   0.04  * window.innerHeight); // --title-top

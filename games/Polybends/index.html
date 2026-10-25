@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aryan Singhal - Polybends</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- MathJax for LaTeX -->
+    <script type="text/javascript" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-leading">
+            <a class="back-button" href="../../" data-back="history" aria-label="Back"></a>
+        </div>
+        <h1 class="topbar-title">Polybends</h1>
+        <div class="topbar-trailing">
+            <button class="settings-button" aria-label="Settings"><i class="fa-solid fa-gear"></i></button>
+            <button class="help-button" aria-label="How to Play"><i class="fa-solid fa-question"></i></button>
+        </div>
+    </header>
+
+    <main class="game">
+        <!-- where the pieces are -->
+        <div id="sidebar" class="sidebar"></div>
+
+        <!-- where the pieces are placed -->
+        <svg id="canvas" class="canvas"></svg>
+
+        <!-- undo, redo, clear buttons -->
+        <div class="canvas-tools">
+            <button id="undo"  class="canvas-tool" aria-label="Undo" disabled><i class="fa-solid fa-rotate-left"></i></button>
+            <button id="redo"  class="canvas-tool" aria-label="Redo" disabled><i class="fa-solid fa-rotate-right"></i></button>
+            <button id="clear" class="canvas-tool" aria-label="Clear"        ><i class="fa-solid fa-trash-can"></i></button>
+        </div>
+    </main>
+
+    <!-- how to play popup -->
+    <div id="help" class="popup" hidden>
+        <div class="popup-box" role="dialog" aria-modal="true" aria-labelledby="help-title">
+            <h2 id="help-title" class="popup-title">How to Play</h2>
+
+            <p>An \(n\)-polybend is a shape whose boundary is made up of \(n\) congruent arcs. Each arc is \(1/6\) of a circle of radius 1, so it has length \(\pi/3\).</p>
+
+            <p>Suppose we take \(X\) polybends and join them, without overlap and along complete arcs only, into a bigger figure whose boundary has length \(Y\). Then this figure is said to have roundness \(X/Y\).</p>
+
+            <p>Play with polybends! Drag them from the sidebar and rotate them with the dot attached to each.</p>
+
+            <p>Adjust their shape in the settings menu.</p>
+
+            <button class="popup-close">Play</button>
+
+            <p class="popup-credit">
+                Polybends was inspired by the <a href="https://www.mathcamp.org/qualifying_quiz/current_quiz/" target="_blank" rel="noopener">Mathcamp 2026 Qualifying Quiz</a>, Problem #2.
+            </p>
+        </div>
+    </div>
+
+    <!-- settings popup -->
+    <div id="settings" class="popup" hidden>
+        <div class="popup-box settings-box" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+            <h2 id="settings-title" class="popup-title">Settings</h2>
+
+            <div class="setting">
+                <span>Show Rotation Dots</span>
+                <button class="toggle dots-toggle" role="switch" aria-checked="true" aria-label="Show Dots"></button>
+            </div>
+
+            <div class="setting">
+                <label for="snap">
+                    Snap Rotation
+                    <span class="setting-note">Turn in steps of this many degrees, \(0\) to turn freely</span>
+                </label>
+                <input id="snap" class="number-input" type="number" min="0" max="180" step="1" value="0">
+            </div>
+
+            <!-- shape of the polybend -->
+            <div class="setting">
+                <label for="sides">Number of Sides</label>
+                <input id="sides" class="number-input" type="number" min="3" step="1" value="5">
+            </div>
+
+            <svg id="shape-preview" class="shape-preview" role="img" aria-label="Shape of the polybend"></svg>
+
+            <button class="popup-close">Done</button>
+        </div>
+    </div>
+
+    <script src="../../scripts/back.js"></script>
+    <script src="../popups.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
