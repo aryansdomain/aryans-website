@@ -108,6 +108,7 @@
     flex-shrink: 0;
     width: min(600px, calc(100% - 2 * var(--text-side)));
     aspect-ratio: 1;
+    border: 0;
 }
 
 /* wide equations */
