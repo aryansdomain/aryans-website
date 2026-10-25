@@ -13,8 +13,6 @@
     --box-border: rgba(0, 0, 0, 0.65);
     --glow: rgba(0, 0, 0, 0.25);
     --dot: rgba(0, 0, 0, 0.55);
-    --channel-1: rgb(255, 40, 80);  /* chromatic aberration, one side */
-    --channel-2: rgb(40, 140, 255); /* chromatic aberration, other side */
 
     /* intro */
     --intro-background: #000;
@@ -212,14 +210,6 @@ body {
     flood-color: var(--glow);
 }
 
-/* chromatic aberration */
-#liquid-layer .channel-1 {
-    flood-color: var(--channel-1);
-}
-#liquid-layer .channel-2 {
-    flood-color: var(--channel-2);
-}
-
 /* clicked subbox grows to edges of screen */
 .open-frame {
     position: fixed;
@@ -385,7 +375,6 @@ body > #lens {
     width: fit-content;
     margin-left: clamp(8px, 3vw, 28px);
     padding: 0.5em 0.4em;
-    color: var(--home-text);
     font-size: clamp(15px, 4.2vw, 20px);
 
     /* drifts in a figure eight like the subboxes, only when --drift isn't 0 */
@@ -394,33 +383,30 @@ body > #lens {
         calc(sin(var(--drift-phase) * 2turn) * var(--drift) / 2);
     animation: back-drift 3800ms linear infinite; /* same as SUSPEND_PERIOD in blob.js */
 
-    /* chromatic trail behind it, hidden until hovered */
-    filter: drop-shadow(0 0 0 transparent) drop-shadow(0 0 0 transparent);
-    transition: --drift 400ms ease, --wind-up 300ms ease, filter 300ms ease;
+    transition: --drift 400ms ease, --wind-up 300ms ease;
 }
-/* pull back and drift, with a trail of colors to the right */
+/* pull back and drift */
 .back-button:hover,
 .back-button:focus-visible {
     outline: none;
     --drift: 1.5px;
     --wind-up: 4px;
-    /* second shadow copies the first too, so channel-2 is 2px behind and channel-1 is 4px behind */
-    filter: drop-shadow(2px 0 0 var(--channel-2)) drop-shadow(2px 0 0 color-mix(in srgb, var(--channel-1) 50%, transparent));
 }
 /* launch left when clicked */
 .back-button.launching {
     --drift: 0px;
     --wind-up: -60px;
     opacity: 0;
-    filter: drop-shadow(8px 0 0 var(--channel-2)) drop-shadow(8px 0 0 color-mix(in srgb, var(--channel-1) 50%, transparent));
-    transition: --drift 250ms ease, --wind-up 250ms cubic-bezier(0.5, 0, 1, 0.5), filter 250ms ease-in, opacity 150ms ease-in 100ms; /* same as LAUNCH_TIME in back.js */
+    transition: --drift 250ms ease, --wind-up 250ms cubic-bezier(0.5, 0, 1, 0.5), opacity 150ms ease-in 100ms; /* same as LAUNCH_TIME in back.js */
 }
+
+/* arrow */
 .back-button::before {
     content: "";
     display: block;
     width: 1.6em;
     height: 1.6em;
-    background: currentColor;
+    background: var(--home-text);
     -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19 12H5M11 6l-6 6 6 6' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
             mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19 12H5M11 6l-6 6 6 6' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
 }
