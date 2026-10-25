@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="../../../style.css">
 </head>
 <body>
+    <!-- dots wandering background -->
+    <canvas id="dots" aria-hidden="true"></canvas>
+
     <header class="topbar">
         <div class="topbar-leading">
             <a class="back-button" href="../../../" aria-label="Back"></a>
@@ -25,5 +28,19 @@
 
         <p>Since launch, the IDE has been used by more than 750 students, spanning 49 countries across 5 continents, and has recorded more than 16,000 code executions.</p>
     </main>
+
+    <!-- lens blur around screen edges -->
+    <div id="lens" aria-hidden="true">
+        <div></div>
+        <div></div>
+    </div>
+
+    <script src="../../../scripts/utils.js"></script>
+    <script src="../../../scripts/oval.js"></script>
+    <script src="../../../scripts/dots.js"></script>
+    <script>
+        showDots(0);
+        placeLensBlur(document.getElementById("lens"));
+    </script>
 </body>
 </html>

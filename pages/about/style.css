@@ -1,5 +1,7 @@
 /* links */
 .link-bar {
+    position: relative;
+    z-index: 10; /* over lens blur */
     display: flex;
     justify-content: center;
     gap: clamp(28px, 8vw, 48px);
