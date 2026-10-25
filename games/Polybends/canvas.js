@@ -169,6 +169,7 @@ canvas.addEventListener("pointerdown", function (event) {
 
     if (event.target.classList.contains("rotate-dot")) drag = { piece: piece, turning: true, grab: null                                                                       }; // turn
     else                                               drag = { piece: piece, turning: false, offsetX: point.x - piece.x, offsetY: point.y - piece.y, startAngle: piece.angle }; // move
+    if (drag.turning) canvas.classList.add("turning"); // rotate cursor until let go
 });
 // turn/move a piece
 document.addEventListener("pointermove", function (event) {
@@ -214,6 +215,7 @@ document.addEventListener("pointerup", function (event) {
     if (ended.scrolling) canvas.classList.remove("scrolling");
     else {
         ended.piece.element.classList.remove("dragging");
+        if (ended.turning) canvas.classList.remove("turning");
         // under the pointer
         const under = document.elementFromPoint(event.clientX, event.clientY);
         if (!canvas.contains(under)) ended.piece.element.remove(); // if dropped in sidebar, remove
@@ -230,6 +232,7 @@ function stopDrag() {
     if (ended.scrolling) canvas.classList.remove("scrolling");
     else {
         ended.piece.element.classList.remove("dragging");
+        if (ended.turning) canvas.classList.remove("turning");
         save();
     }
 }

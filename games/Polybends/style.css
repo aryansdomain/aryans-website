@@ -180,11 +180,15 @@ body.hide-dots .rotate-dot {
     fill: var(--background);
     stroke: var(--box-border);
     stroke-width: 1.5;
-    cursor: grab;
+    cursor: url("rotate.png") 12 12, grab;
     transition: stroke 300ms ease;
 }
 .rotate-dot:hover {
     stroke: var(--text);
+}
+.canvas.turning,
+.canvas.turning * { /* keep rotate cursor while turning */
+    cursor: url("rotate.png") 12 12, grab;
 }
 
 /* drag a piece outside of a sidebar */
