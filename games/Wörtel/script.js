@@ -1,6 +1,6 @@
 // ------------------------ SETTINGS ------------------------
 
-const STORAGE_KEY = 'wortel_intro_seen'
+const STORAGE_KEY = 'wörtel_intro_seen'
 
 const WORD_LENGTH = 5;
 const MAX_GUESSES = 6;
@@ -258,7 +258,7 @@ function updateKeyUI(letter, state) {
 
 // language, english unless switched in settings
 let lang = 'en';
-try { if (localStorage.getItem('wortel_lang') === 'de') lang = 'de'; } catch (error) {}
+try { if (localStorage.getItem('wörtel_lang') === 'de') lang = 'de'; } catch (error) {}
 setLang(lang);
 
 function setLang(newLang) {
@@ -272,14 +272,14 @@ function setLang(newLang) {
 document.querySelectorAll('.lang-switch button').forEach(function (button) {
     button.addEventListener('click', function () {
         setLang(button.dataset.lang);
-        try { localStorage.setItem('wortel_lang', lang); } catch (error) {} // saved only when chosen
+        try { localStorage.setItem('wörtel_lang', lang); } catch (error) {} // saved only when chosen
     });
 });
 
 // hard mode
 const hardModeToggle = document.querySelector('.hard-mode-toggle');
 let hardMode = false;
-try { hardMode = localStorage.getItem('wortel_hard_mode') === 'true'; } catch (error) {}
+try { hardMode = localStorage.getItem('wörtel_hard_mode') === 'true'; } catch (error) {}
 setHardMode(hardMode);
 
 function setHardMode(on) {
@@ -289,7 +289,7 @@ function setHardMode(on) {
 }
 hardModeToggle.addEventListener('click', function () {
     setHardMode(!hardMode);
-    try { localStorage.setItem('wortel_hard_mode', hardMode); } catch (error) {} // saved only when chosen
+    try { localStorage.setItem('wörtel_hard_mode', hardMode); } catch (error) {} // saved only when chosen
 });
 
 // can only be turned on before the first guess, grayed out otherwise
