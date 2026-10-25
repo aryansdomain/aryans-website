@@ -158,7 +158,7 @@ home.addEventListener("click", function (event) {
         const link = boxLinks[box.dataset.cat];
         if (link) {
             phase = "opening";
-            openBox(box, link);
+            openElement(box, box, link, worldCamera.scale);
         } else focus(box);
     } else if (phase === "focused") {
         // open a subcategory's page

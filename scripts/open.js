@@ -46,16 +46,16 @@ function openSubcat(blob) {
     }, blob.link, true);
 }
 
-// grow a box with no subcategories out to the edges of the screen, then open the page
-function openBox(box, link) {
+// grow a box out to the edges of the screen, then open the page
+function openElement(box, text, link, scale) {
     // start on the box's border, just outside it
     const rect = box.getBoundingClientRect();
     const from = { x: rect.left - 1, y: rect.top - 1, width: rect.width + 2, height: rect.height + 2 };
 
-    const style = getComputedStyle(box);
-    openPage(from, box.textContent.trim(), {
+    const style = getComputedStyle(text);
+    openPage(from, text.textContent.trim(), {
         font: style.font,
-        fontSize: parseFloat(style.fontSize) * worldCamera.scale + "px",
+        fontSize: parseFloat(style.fontSize) * scale + "px",
         letterSpacing: style.letterSpacing
     }, link, true);
 }
@@ -156,8 +156,9 @@ function openPage(from, text, labelStyle, link, bordered, fadeOut) {
     requestAnimationFrame(grow);
 }
 
-// name opens the about page
-document.getElementById("name").addEventListener("click", function (event) {
+// name opens the about page 
+const nameLink = document.getElementById("name");
+if (nameLink !== null) nameLink.addEventListener("click", function (event) {
     event.preventDefault();
     if (openFrame === null) openName(event.currentTarget.getAttribute("href"));
 });
@@ -167,5 +168,6 @@ window.addEventListener("pageshow", function (event) {
     if (!event.persisted || openFrame === null) return;
     openFrame.remove();
     openFrame = null;
-    document.getElementById("scene").style.visibility = "";
+    const scene = document.getElementById("scene");
+    if (scene !== null) scene.style.visibility = "";
 });

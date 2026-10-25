@@ -26,6 +26,9 @@ const entries = [
     { title: "Poly x Trig = Linear?", date: "2025-02-18", link: "2025feb18.html" }
 ];
 
+// title of each entry moves to the top of the page
+entries.forEach(function (entry) { titlePages.push(entry.link); });
+
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 
@@ -495,7 +498,7 @@ function closeBox() {
 function clickBox(box) {
     if (dragged || busy()) return;
     if (box.link) {
-        window.location.href = box.link;
+        if (openFrame === null) openElement(box.frame, box.text, box.link, 1);
         return;
     }
 
