@@ -1,6 +1,6 @@
 // ------------------------ SETTINGS ------------------------
 
-const STORAGE_KEY = 'wörtel_intro_seen'
+const STORAGE_KEY = "wörtel_intro_seen";
 
 const WORD_LENGTH = 5;
 const MAX_GUESSES = 6;
@@ -27,7 +27,7 @@ const TEXT = {
 // ß as its own character
 function toUpper(word) {
     // combined umlauts as one character
-    return [...word.normalize('NFC')].map(c => c === 'ß' || c === 'ẞ' ? 'ß' : c.toUpperCase()).join('');
+    return [...word.normalize("NFC")].map(c => c === "ß" || c === "ẞ" ? "ß" : c.toUpperCase()).join("");
 }
 
 // one word per line, uppercase, no blank lines
@@ -41,7 +41,7 @@ function randomAnswer() {
 
 // tiles in row number i
 function rowTiles(i) {
-    return document.querySelectorAll('.row')[i].querySelectorAll('.tile');
+    return document.querySelectorAll(".row")[i].querySelectorAll(".tile");
 }
 
 
@@ -59,37 +59,37 @@ let gameOver = false;
 async function init() {
     // get answers and guesses
     const [answersText, guessesText] = await Promise.all([
-        fetch('answers.txt').then(r => r.text()),
-        fetch('guesses.txt').then(r => r.text()),
+        fetch("answers.txt").then(r => r.text()),
+        fetch("guesses.txt").then(r => r.text())
     ]);
     validAnswers = parse(answersText);
     validGuesses = parse(guessesText);
     targetWord = randomAnswer();
 
     // make grid
-    const grid = document.getElementById('grid');
+    const grid = document.getElementById("grid");
     for (let i = 0; i < MAX_GUESSES; i++) {
-        const row = document.createElement('div');
-        row.className = 'row';
+        const row = document.createElement("div");
+        row.className = "row";
 
         for (let j = 0; j < WORD_LENGTH; j++) {
-            const tile = document.createElement('div');
-            tile.className = 'tile';
+            const tile = document.createElement("div");
+            tile.className = "tile";
             row.appendChild(tile);
         }
         grid.appendChild(row);
     }
 
     // keydown
-    window.addEventListener('keydown', (e) => {
+    window.addEventListener("keydown", (e) => {
         // skip shortcuts, but not option or altgr
         if (e.metaKey || (e.ctrlKey && !e.altKey)) return;
         handleInput(e.key);
     });
 
     // click onscreen key
-    document.querySelectorAll('.key').forEach(button => {
-        button.addEventListener('click', () => {
+    document.querySelectorAll(".key").forEach(button => {
+        button.addEventListener("click", () => {
             button.blur();
             handleInput(button.dataset.key);
         });
@@ -105,29 +105,29 @@ function resetGame() {
     targetWord = randomAnswer();
     updateHardModeToggle(); // can be turned on again
 
-    document.querySelectorAll('.tile').forEach(tile => {
+    document.querySelectorAll(".tile").forEach(tile => {
         tile.textContent = "";
-        tile.removeAttribute('data-state');
+        tile.removeAttribute("data-state");
     });
 
-    document.querySelectorAll('.key').forEach(key => key.removeAttribute('data-state'));
-    document.getElementById('message-container').innerHTML = "";
+    document.querySelectorAll(".key").forEach(key => key.removeAttribute("data-state"));
+    document.getElementById("message-container").innerHTML = "";
 }
 
 // show short popup
 function showMessage(msg, duration = 1500) {
-    const container = document.getElementById('message-container');
+    const container = document.getElementById("message-container");
     container.innerHTML = "";
 
     // create element
-    const popup = document.createElement('div');
-    popup.className = 'popup';
+    const popup = document.createElement("div");
+    popup.className = "message";
     popup.textContent = msg;
     container.appendChild(popup);
 
     // fade out and kill
     setTimeout(() => {
-        popup.classList.add('fade-out');
+        popup.classList.add("fade-out");
         setTimeout(() => { if (popup.parentNode === container) popup.remove(); }, 300);
     }, duration);
 }
@@ -137,19 +137,19 @@ function updateDisplay() {
     const tiles = rowTiles(guesses.length);
     for (let i = 0; i < WORD_LENGTH; i++) {
         tiles[i].textContent = currentGuess[i] || "";
-        if (currentGuess[i]) tiles[i].setAttribute   ('data-state', 'tbd');
-        else                 tiles[i].removeAttribute('data-state'       );
+        if (currentGuess[i]) tiles[i].setAttribute   ("data-state", "tbd");
+        else                 tiles[i].removeAttribute("data-state"       );
     }
 }
 
 // keyboard input
 function handleInput(key) {
-    if (!welcome.hidden || !settings.hidden) return; // a popup is open
+    if (document.querySelector(".popup:not([hidden])")) return; // a popup is open
     if (gameOver) return;
     key = toUpper(key);
-    if (key === 'ENTER') {
+    if (key === "ENTER") {
         submitGuess();
-    } else if (key === 'BACKSPACE') {
+    } else if (key === "BACKSPACE") {
         currentGuess = currentGuess.slice(0, -1);
     } else if (/^[A-ZÄÖÜß]$/.test(key)) {
         if (currentGuess.length < WORD_LENGTH) currentGuess += key;
@@ -199,7 +199,7 @@ function submitGuess() {
 
     // update
     result.forEach((state, i) => {
-        tiles[i].setAttribute('data-state', state);
+        tiles[i].setAttribute("data-state", state);
         updateKeyUI(currentGuess[i], state);
     });
 
@@ -226,7 +226,7 @@ function hardModeProblem(guess) {
     // green letters have to stay
     for (let g = 0; g < guesses.length; g++) {
         for (let i = 0; i < WORD_LENGTH; i++) {
-            if (results[g][i] === 'correct' && guess[i] !== guesses[g][i]) return TEXT[lang].mustBeAt(i + 1, guesses[g][i]);
+            if (results[g][i] === "correct" && guess[i] !== guesses[g][i]) return TEXT[lang].mustBeAt(i + 1, guesses[g][i]);
         }
     }
 
@@ -234,9 +234,9 @@ function hardModeProblem(guess) {
     for (let g = 0; g < guesses.length; g++) {
         for (let i = 0; i < WORD_LENGTH; i++) {
             const letter = guesses[g][i];
-            if (results[g][i] === 'absent') continue;
+            if (results[g][i] === "absent") continue;
 
-            const revealed = [...guesses[g]].filter((l, j) => l === letter && results[g][j] !== 'absent').length;
+            const revealed = [...guesses[g]].filter((l, j) => l === letter && results[g][j] !== "absent").length;
             const used     = [...guess].filter(l => l === letter).length;
             if (used < revealed) return TEXT[lang].mustContain(letter);
         }
@@ -249,47 +249,47 @@ function updateKeyUI(letter, state) {
     const key = document.querySelector(`.key[data-key="${letter}"]`);
     if (!key) return;
 
-    const currentState = key.getAttribute('data-state');
-    if (currentState === 'correct'                      ) return;
-    if (currentState === 'present' && state === 'absent') return;
+    const currentState = key.getAttribute("data-state");
+    if (currentState === "correct"                      ) return;
+    if (currentState === "present" && state === "absent") return;
 
-    key.setAttribute('data-state', state);
+    key.setAttribute("data-state", state);
 }
 
 // language, english unless switched in settings
-let lang = 'en';
-try { if (localStorage.getItem('wörtel_lang') === 'de') lang = 'de'; } catch (error) {}
+let lang = "en";
+try { if (localStorage.getItem("wörtel_lang") === "de") lang = "de"; } catch (error) {}
 setLang(lang);
 
 function setLang(newLang) {
     lang = newLang;
     document.body.dataset.lang = lang; // css shows only this language
     document.documentElement.lang = lang;
-    document.querySelectorAll('.lang-switch button').forEach(function (button) {
-        button.setAttribute('aria-pressed', button.dataset.lang === lang);
+    document.querySelectorAll(".lang-switch button").forEach(function (button) {
+        button.setAttribute("aria-pressed", button.dataset.lang === lang);
     });
 }
-document.querySelectorAll('.lang-switch button').forEach(function (button) {
-    button.addEventListener('click', function () {
+document.querySelectorAll(".lang-switch button").forEach(function (button) {
+    button.addEventListener("click", function () {
         setLang(button.dataset.lang);
-        try { localStorage.setItem('wörtel_lang', lang); } catch (error) {} // saved only when chosen
+        try { localStorage.setItem("wörtel_lang", lang); } catch (error) {} // saved only when chosen
     });
 });
 
 // hard mode
-const hardModeToggle = document.querySelector('.hard-mode-toggle');
+const hardModeToggle = document.querySelector(".hard-mode-toggle");
 let hardMode = false;
-try { hardMode = localStorage.getItem('wörtel_hard_mode') === 'true'; } catch (error) {}
+try { hardMode = localStorage.getItem("wörtel_hard_mode") === "true"; } catch (error) {}
 setHardMode(hardMode);
 
 function setHardMode(on) {
     hardMode = on;
-    hardModeToggle.setAttribute('aria-checked', on);
+    hardModeToggle.setAttribute("aria-checked", on);
     updateHardModeToggle();
 }
-hardModeToggle.addEventListener('click', function () {
+hardModeToggle.addEventListener("click", function () {
     setHardMode(!hardMode);
-    try { localStorage.setItem('wörtel_hard_mode', hardMode); } catch (error) {} // saved only when chosen
+    try { localStorage.setItem("wörtel_hard_mode", hardMode); } catch (error) {} // saved only when chosen
 });
 
 // can only be turned on before the first guess, grayed out otherwise
@@ -297,38 +297,9 @@ function updateHardModeToggle() {
     hardModeToggle.disabled = !hardMode && guesses.length > 0 && !gameOver;
 }
 
-// settings popup
-const settings = document.getElementById('settings');
-document.querySelector('.settings-button').addEventListener('click', function (event) {
-    event.currentTarget.blur();
-    updateHardModeToggle();
-    settings.hidden = false;
-});
-settings.querySelector('.settings-close').addEventListener('click', function () { settings.hidden = true; });
-settings.addEventListener('click', function (event) {
-    if (event.target === settings) settings.hidden = true; // clicked outside the box
-});
-
-// welcome popup, first visit only
-const welcome = document.getElementById('welcome');
-let seenWelcome = false;
-try { seenWelcome = localStorage.getItem(STORAGE_KEY) === 'true'; } catch (error) {}
-if (!seenWelcome) welcome.hidden = false;
-
-function closeWelcome() {
-    welcome.hidden = true;
-    try { localStorage.setItem(STORAGE_KEY, 'true'); } catch (error) {}
-}
-welcome.querySelector('.welcome-close').addEventListener('click', closeWelcome);
-welcome.addEventListener('click', function (event) {
-    if (event.target === welcome) closeWelcome(); // clicked outside the box
-});
-
-// help button opens it again
-document.querySelector('.help-button').addEventListener('click', function (event) {
-    event.currentTarget.blur();
-    welcome.hidden = false;
-});
+// popup
+setUpPopups(STORAGE_KEY);
+document.querySelector(".settings-button").addEventListener("click", updateHardModeToggle);
 
 // run
 init();

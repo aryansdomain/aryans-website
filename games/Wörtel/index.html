@@ -6,6 +6,7 @@
     <title>Aryan Singhal - Wörtel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="style.css">
 
 </head>
@@ -68,14 +69,14 @@
         </div>
     </div>
 
-    <!-- welcome popup -->
-    <div id="welcome" hidden>
-        <div class="welcome-box" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
-            <h2 id="welcome-title" class="welcome-title">
+    <!-- how to play popup -->
+    <div id="help" class="popup" hidden>
+        <div class="popup-box" role="dialog" aria-modal="true" aria-labelledby="help-title">
+            <h2 id="help-title" class="popup-title">
                 <span class="only-en">How To Play</span>
                 <span class="only-de">So wird gespielt</span>
             </h2>
-            <p class="welcome-subtitle">
+            <p class="popup-subtitle">
                 <span class="only-en">Guess the Wörtel in 6 tries.</span>
                 <span class="only-de">Errate das Wörtel in 6 Versuchen.</span>
             </p>
@@ -95,7 +96,7 @@
                 </li>
             </ul>
 
-            <p class="welcome-examples">
+            <p class="help-examples">
                 <span class="only-en">Examples</span>
                 <span class="only-de">Beispiele</span>
             </p>
@@ -131,20 +132,20 @@
                 </p>
             </div>
 
-            <p class="welcome-credit">
+            <button class="popup-close"><span class="only-en">Play</span><span class="only-de">Spielen</span></button>
+
+            <p class="popup-credit">
                 <span class="only-en">Wörtel is a German clone of</span>
                 <span class="only-de">Wörtel ist ein deutscher Klon von</span>
                 <a href="https://www.nytimes.com/games/wordle/index.html" target="_blank" rel="noopener">Wordle</a>.
             </p>
-
-            <button class="welcome-close"><span class="only-en">Play</span><span class="only-de">Spielen</span></button>
         </div>
     </div>
 
     <!-- settings popup -->
-    <div id="settings" hidden>
-        <div class="welcome-box settings-box" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-            <h2 id="settings-title" class="welcome-title">
+    <div id="settings" class="popup" hidden>
+        <div class="popup-box settings-box" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+            <h2 id="settings-title" class="popup-title">
                 <span class="only-en">Settings</span>
                 <span class="only-de">Einstellungen</span>
             </h2>
@@ -171,11 +172,12 @@
                 <button class="toggle hard-mode-toggle" role="switch" aria-checked="false" aria-label="Hard Mode / Schwerer Modus"></button>
             </div>
 
-            <button class="welcome-close settings-close"><span class="only-en">Done</span><span class="only-de">Fertig</span></button>
+            <button class="popup-close"><span class="only-en">Done</span><span class="only-de">Fertig</span></button>
         </div>
     </div>
 
     <script src="../../scripts/back.js"></script>
+    <script src="../popups.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
