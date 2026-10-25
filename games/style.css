@@ -54,7 +54,6 @@
     padding: 24px 28px;
     border: 1px solid var(--home-border);
     background: var(--background);
-    box-shadow: 0 0 12px var(--home-glow);
     color: var(--text-color);
     font: clamp(14px, 3.8vw, 16px) / 1.45 var(--font-sans);
 }
