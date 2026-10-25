@@ -1,18 +1,10 @@
 // ------------------------ SETTINGS ------------------------
 
-const EXTEND_TIME  = 600; // ms   time subboxes take to come out of  their box
-const RETRACT_TIME = 450; // ms   time subboxes take to go back into their box
-const LABEL_TIME   = 300; // ms   time labels take to fade in or out
-
 // LAYOUT
 const SUBBOX_SCALE = 0.8;        //      size of subboxes compared to their box
 const SUBBOX_GAP = 24;           // px   space between subboxes
 const FIRST_SUBBOX_GAP = 56;     // px   space between a box and its first subbox
 const MIN_FIRST_SUBBOX_GAP = 16; // px   smallest that space shrinks to in emergencies (longest subbox is still too close to the screen's edge)
-
-// SUSPENDING
-const SUSPEND_DRIFT = 5;     // px   how far subboxes drift while hanging there
-const SUSPEND_PERIOD = 3800; // ms   time one drift loop takes
 
 
 
@@ -26,7 +18,7 @@ const subcats = {
 };
 
 // boxes with no subcategories open directly
-const boxLinks = {};
+const boxLinks = { blog: "pages/blog/" };
 
 // pages subcategories open
 const subcatLinks = {
@@ -61,11 +53,6 @@ function measureSubbox(box, label) {
     const size = { width: copy.offsetWidth * SUBBOX_SCALE, height: copy.offsetHeight * SUBBOX_SCALE };
     copy.remove();
     return size;
-}
-
-// how far a (sub)box reaches from its center along direction
-function reach(size, dir) {
-    return Math.abs(dir.x) * size.width / 2 + Math.abs(dir.y) * size.height / 2;
 }
 
 // how far from point until CAMERA_PADDING from the edge of the screen
@@ -187,17 +174,6 @@ function boxFont(box, scale) {
     return style.fontWeight + " " + parseFloat(style.fontSize) * scale + "px " + style.fontFamily;
 }
 
-// how far out a blob is
-function outAmount(blob) {
-    if (blob.phase === "retract" || blob.phase === "retracted") return 1 - smoothstep(Math.min(1, blob.retractProgress * 2));
-    if (blob.phase === "extend") return smoothstep(blob.progress);
-    return 1;
-}
-
-function smoothstep(u) {
-    return u * u * (3 - 2 * u);
-}
-
 
 
 // ------------------------ FOR HOME.JS ------------------------
@@ -222,35 +198,18 @@ function spawnSubcats(parent, layout) {
     parent.classList.add("liquid");
 
     blobs = layout.subboxes.map(function (subbox) {
-        const blob = {
+        const blob = Object.assign(makeBlob(origin, { x: subbox.center.x, y: subbox.center.y, width: subbox.width, height: subbox.height }), {
             id:     subbox.id,
             parent: subbox.parent,
             label:  subbox.label,
             link:   subbox.link,
-
-                  x:        origin.x,       y:        origin.y,
-            targetX: subbox.center.x, targetY: subbox.center.y,
-
-                  width: 0,                  height: 0,
-            targetWidth: subbox.width, targetHeight: subbox.height,
-
-            cornerRadius: 0,
-            opacity: 0, // of label
-
-            phase: "extend", // extend -> settle -> extended -> retract -> retracted
-            progress: 0,     // 0 = inside parent, 1 = at target
-            liquidity: 0,    // 0 = crisp, 1 = fully liquid
-
-            // own drift while suspended
-            driftPhase: Math.random() * Math.PI * 2,
-            driftPeriod: SUSPEND_PERIOD * (0.8 + Math.random() * 0.4),
 
             hover: 0,
 
             bodyShape: makeSilhouette("rect"),
             hoverShapes: makeHoverShapes(),
             text: makeLabel(subbox.label)
-        };
+        });
         blob.text.style.font = boxFont(parent, subbox.height / layout.box.height);
         blob.text.style.letterSpacing = getComputedStyle(parent).letterSpacing;
         return blob;
@@ -260,17 +219,7 @@ function spawnSubcats(parent, layout) {
 
 // send all blobs back to parents
 function retractSubcats() {
-    blobs.forEach(function (blob) {
-        if (blob.phase === "retract" || blob.phase === "retracted") return;
-        blob.phase = "retract";
-        blob.retractProgress = 0;
-        blob.from = {
-            x: blob.x, y: blob.y,
-            width: blob.width, height: blob.height,
-            cornerRadius: blob.cornerRadius,
-            liquidity: blob.liquidity
-        };
-    });
+    blobs.forEach(retractBlob);
 }
 
 // move blobs
@@ -281,33 +230,7 @@ function updateSubcats(dt) {
     liquidParent.y = origin.y;
     liquidTime += dt;
 
-    blobs.forEach(function (blob) {
-        if (blob.phase === "extend") {
-            blob.progress = Math.min(1, blob.progress + dt / EXTEND_TIME);
-            blob.opacity = Math.max(0, Math.min(blob.opacity + dt / LABEL_TIME, 2 * blob.progress - 1)); // label fades in from halfway
-            if (blob.progress === 1) blob.phase = "settle";
-        } else if (blob.phase === "settle") {
-            blob.opacity = Math.min(1, blob.opacity + dt / LABEL_TIME);
-            if (blob.opacity === 1) blob.phase = "extended";
-        } else if (blob.phase === "retract") {
-            blob.retractProgress = Math.min(1, blob.retractProgress + dt / RETRACT_TIME);
-
-            // fade out label, gone by halfway
-            blob.opacity = Math.max(0, Math.min(blob.opacity - dt / LABEL_TIME, 1 - 2 * blob.retractProgress));
-            if (blob.retractProgress === 1) blob.phase = "retracted";
-        }
-
-        if (blob.phase === "retract" || blob.phase === "retracted") shapeBlob(blob, origin, blob.from, blob.retractProgress, RETRACT_BLOB_AT - RESHAPE_TIME, RETRACT_BLOB_AT);
-        else {
-            shapeBlob(blob, origin, finishedSubbox(blob), 1 - blob.progress, 1 - EXTEND_BOX_AT, 1 - EXTEND_BOX_AT + RESHAPE_TIME);
-
-            // drift in a slow loop
-            const drift = SUSPEND_DRIFT * outAmount(blob);
-            const angle = 2 * Math.PI * liquidTime / blob.driftPeriod + blob.driftPhase;
-            blob.x += Math.cos(angle) * drift;
-            blob.y += Math.sin(2 * angle) * drift / 2;
-        }
-    });
+    blobs.forEach(function (blob) { stepBlob(blob, origin, liquidParent, dt, liquidTime); });
 
     updateHover(dt);
 
@@ -323,7 +246,7 @@ function updateSubcats(dt) {
 
 // whether every blob has finished coming out or going back in
 function isStable() {
-    return blobs.every(function (blob) { return blob.phase === "extended" || blob.phase === "retracted"; });
+    return blobs.every(isSettled);
 }
 
 

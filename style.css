@@ -28,6 +28,10 @@
     --home-border: var(--box-border);
     --home-glow: var(--glow);
     --title-top: clamp(8px, 4dvh, 40px); /* space between top of screen and topbar */
+    --text-side: clamp(16px, 5vw, 32px); /* space between the sides of the screen and text */
+
+    --text-lens-blur: 2.5px;  /* how blurred dots are behind text (same as LENS_BLUR in oval.js) */
+    --text-fade: 32px;        /* how far text fades out at the top and bottom */
 }
 
 body {
@@ -81,7 +85,7 @@ body {
     --box-clear: calc(var(--box-font) * 2);
 }
 
-/* dots wandering the background */
+/* dots wandering background */
 #dots {
     position: absolute;
     inset: 0;
@@ -284,19 +288,20 @@ body {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: -6px;
+    top: var(--underline-top, calc(100% + 6px));
     height: 1px;
     background: var(--box-border);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 400ms ease;
+    -webkit-mask: var(--underline-skips, none);
+            mask: var(--underline-skips, none);
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path 400ms ease;
 }
 #name:focus-visible {
     outline: none;
 }
 #name:hover::after,
 #name:focus-visible::after {
-    transform: scaleX(1);
+    clip-path: inset(0 0 0 0);
 }
 
 /* replay intro button */
@@ -324,8 +329,21 @@ body {
 
 /* ------------------------ FOR PAGES ------------------------ */
 
+/* dots wandering behind the whole page */
+body > #dots {
+    position: fixed;
+    z-index: -1;
+}
+
+/* blur toward screen's edges */
+body > #lens {
+    position: fixed;
+}
+
 /* topbar */
 .topbar {
+    position: relative;
+    z-index: 10; /* over lens blur */
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
@@ -370,6 +388,8 @@ body {
 
 /* text */
 .text {
+    position: relative;
+    z-index: 10; /* over lens blur */
     flex: 1;
     min-height: 0;
     overflow-y: auto;
@@ -378,12 +398,25 @@ body {
     flex-direction: column;
     align-items: center;
     margin-top: clamp(24px, 6dvh, 64px); /* space between title and text */
+    padding-bottom: calc(var(--text-fade) + 15dvh); /* scroll a little past the end */
+
+    /* fades out at the top and bottom */
+    -webkit-mask: linear-gradient(transparent, #000 var(--text-fade), #000 calc(100% - var(--text-fade)), transparent);
+            mask: linear-gradient(transparent, #000 var(--text-fade), #000 calc(100% - var(--text-fade)), transparent);
 }
+
 .text p {
     box-sizing: border-box;
     width: 100%;
     max-width: 680px;
-    padding: 0 clamp(16px, 5vw, 32px);
+    padding: 0 var(--text-side);
+}
+
+/* blur dots behind text */
+.text,
+.topbar-title {
+    -webkit-backdrop-filter: blur(var(--text-lens-blur));
+            backdrop-filter: blur(var(--text-lens-blur));
 }
 
 /* links in text: draw underline on hover */
@@ -400,3 +433,5 @@ body {
     outline: none;
     background-size: 100% 1px;
 }
+
+/* TODO: back button should, instead of getting larger on hover, do something like chromatically abberate itself or drift like the subboxes? move right a little bit to anticipate the leftward movement that happens when it is clicked, like a rocket, maybe leaving a trail of chromatic colors. also on hover, drift slightly for tension */ 

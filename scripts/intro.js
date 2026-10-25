@@ -48,6 +48,11 @@ const TOPBAR_Y = 40;               // px      how far the middle of the text is 
 const TOPBAR_POINTS_PER_PIXEL = 7; // pts/px  points per pixel of topbar letters
 const TOPBAR_POINT_RADIUS = 0.4;   // px      size of points in the topbar text, bigger -> darker
 
+// UNDERLINE
+const NAME_UNDERLINE_GAP  = 3; // px      how far below the bottom of the letters is the underline
+const NAME_UNDERLINE_SKIP = 4; // px      space the underline leaves on each side of y and g
+const TAIL_DEPTH = 0.1;        // ratio   how far below the baseline a letter goes to be considered a "tail"
+
 // CAMERA
 const FOV = 70;       // deg   up-and-down view angle
 const CAMERA_PATH = [ //       the path the camera takes
@@ -86,11 +91,6 @@ const MAX_INTRO_PIXEL_RATIO = 1.5; // ratio   maximum number of canvas pixels pe
 
 function font(family, size) {
     return "200 " + size + "px " + family;
-}
-
-// ensure a value is between min and max
-function clamp(min, max, value) {
-    return Math.min(max, Math.max(min, value));
 }
 
 // a point along a cubic bezier curve
@@ -682,7 +682,7 @@ function moveToTopbar() {
     canvas.style.pointerEvents = "none"; // let main page underneath be hovered and clicked
     canvas.classList.add("done");        // fade out dark background
     startLoop();
-    showDots();
+    showDots(TOPBAR_TIME);
 
     // intro seen, skip it next time
     try { localStorage.setItem(SEEN_INTRO_KEY, "true"); } catch (error) {}
@@ -701,7 +701,7 @@ function skipIntro() {
     drawCapture(performance.now());
     showHome();
     placeNameButton();
-    showDots();
+    showDots(TOPBAR_TIME);
 }
 
 // draw the loading percentage
@@ -1104,6 +1104,56 @@ function placeNameButton() {
     nameButton.style.top    = TOPBAR_Y  + capture.top   * textWidth + "px";
     nameButton.style.width  =            capture.width  * textWidth + "px";
     nameButton.style.height =            capture.height * textWidth + "px";
+
+    // underline under the letters, gaps for y and g
+    if (letterPixels.length === 0) return;
+    const name = findTails();
+    nameButton.style.setProperty("--underline-top", (name.baseline - capture.top) * textWidth + NAME_UNDERLINE_GAP + "px");
+
+    const stops = [];
+    name.tails.forEach(function (tail) {
+        const left  = (tail.left  - capture.left) * textWidth - NAME_UNDERLINE_SKIP;
+        const right = (tail.right - capture.left) * textWidth + NAME_UNDERLINE_SKIP;
+        stops.push("#000 " + left + "px", "transparent " + left + "px", "transparent " + right + "px", "#000 " + right + "px");
+    });
+    nameButton.style.setProperty("--underline-skips", stops.length > 0 ? "linear-gradient(90deg, " + stops.join(", ") + ")" : "none");
+}
+
+// baseline of name, and tails of hanging letters
+function findTails() {
+    // lowest pixel of each column
+    const bottoms = new Map();
+    let top = Infinity;
+    for (const pixel of letterPixels) {
+        const column = Math.round(pixel.x / letterPixelSize);
+        bottoms.set(column, Math.max(bottoms.has(column) ? bottoms.get(column) : -Infinity, pixel.y));
+        top = Math.min(top, pixel.y);
+    }
+
+    // baseline: where the most columns end
+    const counts = new Map();
+    let baseline = 0, most = 0;
+    for (const bottom of bottoms.values()) {
+        const row = Math.round(bottom / letterPixelSize);
+        const count = (counts.get(row) || 0) + 1;
+        counts.set(row, count);
+        if (count > most) {
+            most = count;
+            baseline = row * letterPixelSize;
+        }
+    }
+
+    // tails: columns that go some amount below the baseline
+    const deep = baseline + TAIL_DEPTH * (baseline - top);
+    const tails = [];
+    Array.from(bottoms.keys()).sort(function (a, b) { return a - b; }).forEach(function (column) {
+        if (bottoms.get(column) <= deep) return;
+        const x = column * letterPixelSize;
+        const last = tails[tails.length - 1];
+        if (last && x - last.right <= letterPixelSize) last.right = x + letterPixelSize;
+        else tails.push({ left: x, right: x + letterPixelSize });
+    });
+    return { baseline: baseline + letterPixelSize, tails: tails }; // bottom edge of pixels of baseline
 }
 
 // replay button in the corner

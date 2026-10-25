@@ -1,12 +1,12 @@
 // ------------------------ SETTINGS ------------------------
 
-const DOTS_PER_PIXEL = 0.000405; // dots/px   dots wandering the background per pixel of window (800 on a 1990x992 window)
+const DOTS_PER_PIXEL = 0.000405; // dots/px   dots wandering background per pixel of window (800 on a 1990x992 window)
 const DOT_RADIUS = 1.5;          // px
 const DOT_MIN_ALPHA = 0.15;      // 0-1       faintest a dot can be
 
 // APPEAR
-const APPEAR_START = 0.1; // ratio   fraction of TOPBAR_TIME when the first dot appears
-const APPEAR_END = 0.9;   // ratio   fraction of TOPBAR_TIME when the last  dot appears
+const APPEAR_START = 0.1; // ratio   fraction of the dot spread time when the first dot appears
+const APPEAR_END = 0.9;   // ratio   fraction of the dot spread time when the last  dot appears
 const DOT_FADE_IN = 800;  // ms      time each dot takes to fade in
 
 // WANDER
@@ -26,6 +26,9 @@ const CURSOR_CALM = 600;  // ms      how quickly fleeing dots slow back down to 
 // CHROMATIC ABERRATION
 const CHROMA_EASE = 150; // ms    how quickly color split follows the dot
 
+// AROUND TEXT
+const LENS_TEXT = ".text, .topbar-title"; // text that dots blur and split around
+
 
 
 // ------------------------ STATE ------------------------
@@ -42,6 +45,10 @@ let dotColor = null;
 let dotDarkness = 1; // how solid --dot is
 let dotBackground = null;
 let cursor = null;
+
+// text the dots split behind
+const lensTexts = document.querySelectorAll(LENS_TEXT);
+let textRects = []; // where the text is on the screen, each frame
 
 // resize canvas to window
 function resizeDots() {
@@ -60,6 +67,20 @@ function readDotColor() {
     dotBackground = style.getPropertyValue("--background").trim();
     const parts = dotColor.match(/[\d.]+/g);
     dotDarkness = parts && parts.length === 4 ? parseFloat(parts[3]) : 1;
+}
+
+// where the text is on the screen
+function findTextRects() {
+    textRects = Array.prototype.map.call(lensTexts, function (text) { return text.getBoundingClientRect(); });
+}
+
+// how split a dot near text is, and in which direction
+function textLens(x, y) {
+    for (const rect of textRects) {
+        if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) continue;
+        return { amount: 1, angle: Math.atan2(y - (rect.top + rect.bottom) / 2, x - (rect.left + rect.right) / 2) };
+    }
+    return { amount: 0, angle: 0 };
 }
 
 // a random ratio around 1, up to amount above or below
@@ -82,14 +103,14 @@ function angleBetween(a, b) {
 // ------------------------ MAIN FUNCTIONS ------------------------
 
 // scatter dots across the page, fading in as the name moves into topbar
-function showDots() {
+function showDots(spread) {
     if (dots.length > 0) return;
     const now = performance.now();
 
     const count = Math.round(DOTS_PER_PIXEL * dotWidth * dotHeight);
     for (let i = 0; i < count; i++) {
         dots.push({
-            appearAt: now + TOPBAR_TIME * (APPEAR_START + (APPEAR_END - APPEAR_START) * Math.random()),
+            appearAt: now + spread * (APPEAR_START + (APPEAR_END - APPEAR_START) * Math.random()),
             x: EDGE_MARGIN + Math.random() * Math.max(0, dotWidth  - 2 * EDGE_MARGIN),
             y: EDGE_MARGIN + Math.random() * Math.max(0, dotHeight - 2 * EDGE_MARGIN),
             wanderSpeed: WANDER_SPEED * vary(WANDER_VARIETY),
@@ -135,8 +156,10 @@ function moveDot(dot, dt) {
     }
 
     // color channels split
-    const chroma      = lensAmount(dot.x, dot.y) * LENS_OFFSET;
-    const chromaAngle = lensAngle (dot.x, dot.y);
+    const edge = lensAmount(dot.x, dot.y);
+    const text = textLens(dot.x, dot.y);
+    const chroma      = Math.max(edge, text.amount) * LENS_OFFSET;
+    const chromaAngle = text.amount > edge ? text.angle : lensAngle(dot.x, dot.y);
 
     // near the cursor, turn away from it and speed up, calm down after
     dot.boost *= Math.exp(-dt / CURSOR_CALM);
@@ -223,6 +246,7 @@ function dotFrame(now) {
     const dt = lastDotFrame === null ? 0 : Math.min(50, now - lastDotFrame);
     lastDotFrame = now;
 
+    findTextRects();
     for (const dot of dots) moveDot(dot, dt);
     drawDots(now);
 
