@@ -21,6 +21,9 @@ const UNDO_LIMIT = 100; //  most steps that can be undone
 
 const DOUBLE_TAP_TIME = 300; // ms   longest time between two clicks/taps on a piece to remove it
 
+const SNAP_DISTANCE = 12; // px    how close an arc gets to another arc before snapping
+const SNAP_TURN = 20;     // deg   how much the degrees of arcs can differ for snapping to occur 
+
 
 
 // ------------------------ PAGE ------------------------
@@ -29,22 +32,32 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 
 const STORAGE_KEY = "polybends_intro_seen"; // localStorage key
 
-const sidebar      = document.getElementById("sidebar");
-const canvas       = document.getElementById("canvas");
-const undoButton   = document.getElementById("undo");
-const redoButton   = document.getElementById("redo");
-const clearButton  = document.getElementById("clear");
-const dotsToggle   = document.querySelector(".dots-toggle");
-const shapePreview = document.getElementById("shape-preview");
-const sidesInput   = document.getElementById("sides");
-const snapInput    = document.getElementById("snap");
+const sidebar       = document.getElementById("sidebar");
+const shapeList     = document.getElementById("sidebar-shapes");
+const addShape      = document.getElementById("add-shape");
+const newShape      = document.getElementById("new-shape");
+const addShapeDone  = document.getElementById("add-shape-done");
+const mirrorToggle  = document.querySelector(".mirror-toggle");
+const canvas        = document.getElementById("canvas");
+const undoButton    = document.getElementById("undo");
+const redoButton    = document.getElementById("redo");
+const clearButton   = document.getElementById("clear");
+const dotsToggle    = document.querySelector(".dots-toggle");
+const shapePreview  = document.getElementById("shape-preview");
+const sidesInput    = document.getElementById("sides");
+const snapInput     = document.getElementById("snap");
+const roundnessText = document.getElementById("roundness");
 
 // everything on the canvas
 const world = document.createElementNS(SVG_NS, "g");
 canvas.appendChild(world);
 
-// which sides of new pieces bulge out
+// shapes in the sidebar
+let shapes = defaultShapes();
+
+// shape being made in the new shape popup: which sides bulge out, and if the mirror is added too
 let bulgesOut = alternatingBulges(DEFAULT_SIDES);
+let addMirrored = false;
 
 
 
@@ -163,6 +176,66 @@ canvas.addEventListener("wheel", function (event) {
 
 
 
+// ------------------------ SNAPPING ------------------------
+
+// each side of a piece on the canvas
+function pieceSides(piece, x, y, angle) {
+    const turn = angle * Math.PI / 180
+    const cos = Math.cos(turn), sin = Math.sin(turn);
+
+    // move vertices to x, y, turn to angle
+    const points = pieceVertices(piece.bulges.length).map(function (v) {
+        const vx = (piece.reflected ? -v.x : v.x) * CANVAS_PIECE_SIZE
+        const vy =                     v.y        * CANVAS_PIECE_SIZE;
+        return { x: x + vx*cos - vy*sin, y: y + vx*sin + vy*cos };
+    });
+
+    return piece.bulges.map(function (out, i) {
+        return { a: points[i], b: points[(i + 1) % points.length], out: out };
+    });
+}
+
+// where a piece snaps
+function snapPlace(piece, x, y, angle) {
+    const sides = pieceSides(piece, x, y, angle);
+    let best = null;
+
+    Array.from(world.children).forEach(function (element) {
+        const other = element.piece;
+        if (other === piece) return;
+
+        const sameWay = piece.reflected !== other.reflected;
+
+        pieceSides(other, other.x, other.y, other.angle).forEach(function (t) {
+            sides.forEach(function (s, i) {
+                if (s.out === t.out) return; // concave fits convex
+
+                // if centers of the sides close enough
+                const distance = Math.hypot((s.a.x + s.b.x - t.a.x - t.b.x) / 2, (s.a.y + s.b.y - t.a.y - t.b.y) / 2);
+                if (distance > SNAP_DISTANCE || (best !== null && distance >= best.distance)) return;
+
+                // turn so side lies against other side
+                const to   = sameWay ? t.a : t.b;
+                const from = sameWay ? t.b : t.a;
+                const want = Math.atan2(from.y - to.y, from.x - to.x) * 180 / Math.PI;
+                const have = Math.atan2(s.b.y - s.a.y, s.b.x - s.a.x) * 180 / Math.PI;
+
+                const turn = ((want - have) % 360 + 540) % 360 - 180; // between -180 and 180
+                if (Math.abs(turn) > SNAP_TURN) return;
+
+                best = { distance: distance, side: i, turn: turn, to: to };
+            });
+        });
+    });
+    if (best === null) return null;
+
+    // turn, then move
+    const turned = pieceSides(piece, x, y, angle + best.turn)[best.side].a;
+    return { x: x + best.to.x - turned.x, y: y + best.to.y - turned.y, angle: angle + best.turn };
+}
+
+
+
 // ------------------------ DRAGGING ------------------------
 
 let drag = null; // the piece being moved/turned, or if the canvas is being zoomed/scrolled
@@ -182,9 +255,10 @@ sidebar.addEventListener("pointerdown", function (event) {
 
     // make piece
     const point = canvasPoint(event);
-    const piece = makePiece(point.x, point.y, item.dataset.reflected === "true", bulgesOut.slice());
+    const shape = shapes[Number(item.dataset.index)];
+    const piece = makePiece(point.x, point.y, shape.reflected, shape.bulges.slice());
     piece.element.classList.add("dragging");
-    drag = { piece: piece, turning: false, offsetX: 0, offsetY: 0 };
+    drag = { piece: piece, turning: false, offsetX: 0, offsetY: 0, startAngle: 0 };
 });
 
 // start to turn/move a piece, or scroll the canvas
@@ -210,8 +284,8 @@ canvas.addEventListener("pointerdown", function (event) {
     lastTap = { piece: piece, time: event.timeStamp };
     const point = canvasPoint(event);
 
-    if (event.target.classList.contains("rotate-dot")) drag = { piece: piece, turning: true, grab: null                                              }; // turn
-    else                                               drag = { piece: piece, turning: false, offsetX: point.x - piece.x, offsetY: point.y - piece.y }; // move
+    if (event.target.classList.contains("rotate-dot")) drag = { piece: piece, turning: true, grab: null                                                                       }; // turn
+    else                                               drag = { piece: piece, turning: false, offsetX: point.x - piece.x, offsetY: point.y - piece.y, startAngle: piece.angle }; // move
 });
 // turn/move a piece
 document.addEventListener("pointermove", function (event) {
@@ -235,6 +309,15 @@ document.addEventListener("pointermove", function (event) {
     } else {
         piece.x = point.x - drag.offsetX;
         piece.y = point.y - drag.offsetY;
+        piece.angle = drag.startAngle;
+
+        // snap onto a piece
+        const snap = snapPlace(piece, piece.x, piece.y, piece.angle);
+        if (snap !== null) {
+            piece.x = snap.x;
+            piece.y = snap.y;
+            piece.angle = snap.angle;
+        }
     }
 
     piece.element.setAttribute("transform", "translate(" + piece.x + "," + piece.y + ") rotate(" + piece.angle + ")");
@@ -242,27 +325,30 @@ document.addEventListener("pointermove", function (event) {
 // end turning/moving a piece
 document.addEventListener("pointerup", function (event) {
     if (drag === null || !event.isPrimary) return;
+    const ended = drag;
+    drag = null;
 
-    if (drag.scrolling) canvas.classList.remove("scrolling");
+    if (ended.scrolling) canvas.classList.remove("scrolling");
     else {
-        drag.piece.element.classList.remove("dragging");
+        ended.piece.element.classList.remove("dragging");
         // under the pointer
         const under = document.elementFromPoint(event.clientX, event.clientY);
-        if (!canvas.contains(under)) drag.piece.element.remove(); // if dropped in sidebar, remove
+        if (!canvas.contains(under)) ended.piece.element.remove(); // if dropped in sidebar, remove
         save();
     }
-    drag = null;
 });
 
 // browser interrupts an event
 document.addEventListener("pointercancel", function (event) {
     if (drag === null || !event.isPrimary) return;
-    if (drag.scrolling) canvas.classList.remove("scrolling");
+    const ended = drag;
+    drag = null;
+
+    if (ended.scrolling) canvas.classList.remove("scrolling");
     else {
-        drag.piece.element.classList.remove("dragging");
+        ended.piece.element.classList.remove("dragging");
         save();
     }
-    drag = null;
 });
 
 
@@ -291,6 +377,7 @@ function save() {
     if (saves.length > UNDO_LIMIT + 1) saves.shift();
     step = saves.length - 1;
     updateButtons();
+    updateRoundness();
     store();
 }
 
@@ -306,6 +393,7 @@ function goTo(newStep) {
         piece.element.setAttribute("transform", "translate(" + piece.x + "," + piece.y + ") rotate(" + piece.angle + ")");
     });
     updateButtons();
+    updateRoundness();
     store();
 }
 
@@ -348,27 +436,100 @@ document.addEventListener("keydown", function (event) {
 
 
 
+// ------------------------ ROUNDNESS ------------------------
+
+// roundness of shape on canvas
+function updateRoundness() {
+    const pieces = Array.from(world.children).map(function (element) { return element.piece; });
+    roundnessText.hidden = pieces.length === 0; // hide if no pieces
+    if (pieces.length === 0) return;
+
+    // count each arc, subtract 2 for arcs that are joined
+    const sides = pieces.map(function (piece) { return pieceSides(piece, piece.x, piece.y, piece.angle); });
+    let arcs = 0;
+    sides.forEach(function (list) { arcs += list.length; });
+    for (let i = 0; i < sides.length; i++) {
+        for (let j = i + 1; j < sides.length; j++) {
+            sides[i].forEach(function (s) {
+                sides[j].forEach(function (t) {
+                    if (s.out !== t.out && joined(s, t)) arcs -= 2;
+                });
+            });
+        }
+    }
+
+    // calculate roundness
+    const num = 3 * pieces.length, den = arcs;
+
+    // calculate gcd using euclidean algorithm
+    let a = num, b = den;
+    while (b !== 0) [a, b] = [b, a % b];
+    const divisor = a;
+
+    const numText = num / divisor;
+    const denText = den / divisor === 1 ? "" : den / divisor;
+    const frac = numText + "/" + denText + "π";
+    roundnessText.textContent = "Roundness: " + frac + " ≈ " + (num / (den * Math.PI)).toFixed(3);
+}
+
+// are two sides connected
+function joined(s, t) {
+    function same(p, q) { return Math.hypot(p.x - q.x, p.y - q.y) < 1e-6; }
+    return (same(s.a, t.a) && same(s.b, t.b)) || (same(s.a, t.b) && same(s.b, t.a));
+}
+
+
+
 // ------------------------ SIDEBAR ------------------------
 
-// one of each piece
+// pentabend and mirror
+function defaultShapes() {
+    return [
+        { bulges: alternatingBulges(DEFAULT_SIDES), reflected: false },
+        { bulges: alternatingBulges(DEFAULT_SIDES), reflected: true  }
+    ];
+}
+
+// each shape, with remove button
 function drawSidebar() {
-    sidebar.replaceChildren();
-    [false, true].forEach(function (reflected) {
+    shapeList.replaceChildren();
+    shapes.forEach(function (shape, i) {
+        const row = document.createElement("div");
+        row.className = "sidebar-item";
+        shapeList.appendChild(row);
+
         // make item
         const item = document.createElementNS(SVG_NS, "svg");
         item.classList.add("sidebar-piece");
-        item.dataset.reflected = reflected;
+        item.dataset.index = i;
 
         // add item
-        item.appendChild(makeShape(reflected, SIDEBAR_PIECE_SIZE, bulgesOut));
-        sidebar.appendChild(item);
+        item.appendChild(makeShape(shape.reflected, SIDEBAR_PIECE_SIZE, shape.bulges));
+        row.appendChild(item);
 
         // fit picture to piece
         const box = item.getBBox();
         item.setAttribute("viewBox", (box.x - 1) + " " + (box.y - 1) + " " + (box.width + 2) + " " + (box.height + 2));
         item.setAttribute("width",                                            box.width + 2                          );
         item.setAttribute("height",                                                                   box.height + 2 );
+
+        // remove button
+        const remove = document.createElement("button");
+        remove.className = "sidebar-remove";
+        remove.setAttribute("aria-label", "Remove Shape");
+        remove.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+        remove.addEventListener("click", function () {
+            shapes.splice(i, 1);
+            storeShapes();
+            drawSidebar();
+        });
+        row.prepend(remove);
     });
+}
+
+// remember sidebar contents
+function storeShapes() {
+    try { localStorage.setItem("polybends_sidebar", JSON.stringify(shapes)); } catch (error) {}
 }
 
 
@@ -399,7 +560,11 @@ snapInput.addEventListener("input", function () {
 });
 snapInput.addEventListener("change", function () { snapInput.value = snapAngle; }); // reject out of range numbers
 
-// preview of the current polybend, a button on each arc that flips the bulge
+
+
+// ------------------------ NEW SHAPE POPUP ------------------------
+
+// preview of the new shape, a button on each arc that flips the bulge
 function drawPreview() {
     shapePreview.replaceChildren(makeShape(false, 1, bulgesOut));
 
@@ -417,7 +582,7 @@ function drawPreview() {
         button.setAttribute("r", ARC_BUTTON_RADIUS);
         button.addEventListener("click", function () {
             bulgesOut[i] = !bulgesOut[i];
-            drawShape();
+            drawPreview();
         });
         shapePreview.appendChild(button);
     });
@@ -431,30 +596,40 @@ function fitPreview() {
     shapePreview.setAttribute("viewBox", (box.x - 0.05) + " " + (box.y - 0.05) + " " + (box.width + 0.1) + " " + (box.height + 0.1));
 }
 
-// redraw everything that shows the shape
-function drawShape() {
-    drawSidebar();
-    drawPreview();
-    try { localStorage.setItem("polybends_shape", JSON.stringify(bulgesOut)); } catch (error) {} // save
-}
-
 // number of sides
 sidesInput.addEventListener("input", function () {
     const sides = Number(sidesInput.value);
     if (!Number.isInteger(sides) || sides < 3 || sides > MAX_SIDES) return; // needs integer in range
     bulgesOut = alternatingBulges(sides);
-    drawShape();
+    drawPreview();
 });
 sidesInput.addEventListener("change", function () { sidesInput.value = bulgesOut.length; }); // reject out of range numbers
+
+// add mirrored switch
+mirrorToggle.addEventListener("click", function () {
+    addMirrored = !addMirrored;
+    mirrorToggle.setAttribute("aria-checked", addMirrored);
+});
+
+// add button
+addShapeDone.addEventListener("click", function () {
+    shapes.push({ bulges: bulgesOut.slice(), reflected: false });
+    if (addMirrored) shapes.push({ bulges: bulgesOut.slice(), reflected: true });
+    storeShapes();
+    drawSidebar();
+});
 
 
 
 // ------------------------ START ------------------------
 
-// restore settings from last time
+// restore sidebar and settings from last time
 try {
-    const saved = JSON.parse(localStorage.getItem("polybends_shape"));
-    if (Array.isArray(saved) && saved.length >= 3 && saved.length <= MAX_SIDES) bulgesOut = saved.map(Boolean);
+    const saved = JSON.parse(localStorage.getItem("polybends_sidebar"));
+    const valid = Array.isArray(saved) && saved.every(function (shape) { // shape is ok
+        return shape && Array.isArray(shape.bulges) && shape.bulges.length >= 3 && shape.bulges.length <= MAX_SIDES;
+    });
+    if (valid) shapes = saved.map(function (shape) { return { bulges: shape.bulges.map(Boolean), reflected: Boolean(shape.reflected) }; });
 } catch (error) {}
 try { showDots = localStorage.getItem("polybends_show_dots") !== "false"; } catch (error) {}
 setShowDots(showDots);
@@ -467,7 +642,7 @@ snapInput.value = snapAngle;
 // shape
 sidesInput.value = bulgesOut.length;
 sidesInput.max   = MAX_SIDES;
-sidebar.style.gap = SIDEBAR_PIECE_GAP + "px";
+shapeList.style.gap = SIDEBAR_PIECE_GAP + "px";
 drawSidebar();
 drawPreview();
 
@@ -485,8 +660,10 @@ try {
     world.replaceChildren();
     updateButtons();
 }
+updateRoundness();
 placeView();
 
 // popups, then fit preview
 setUpPopups(STORAGE_KEY);
-document.querySelector(".settings-button").addEventListener("click", fitPreview);
+setUpPopup(newShape, addShape);
+addShape.addEventListener("click", fitPreview);

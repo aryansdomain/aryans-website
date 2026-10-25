@@ -32,6 +32,21 @@ body.hide-dots .rotate-dot {
     cursor: default;
 }
 
+/* roundness */
+.roundness {
+    position: absolute;
+    bottom: 16px;
+    right: calc(clamp(8px, 3vw, 28px) + 0.6 * clamp(15px, 4.2vw, 20px)); /* lined up with the trash can's icon */
+    z-index: 1; /* over canvas */
+    margin: 0;
+    color: var(--muted);
+    font: clamp(14px, 3.6vw, 18px) var(--font-sans);
+    pointer-events: none;
+}
+.roundness[hidden] {
+    display: none;
+}
+
 .game {
     position: relative;
     flex: 1;
@@ -53,8 +68,24 @@ body.hide-dots .rotate-dot {
     overflow-y: auto;
     border-right: 1px solid var(--box-border);
 }
+.sidebar-shapes {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+/* shape with a remove button */
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    max-width: 100%;
+}
 .sidebar-piece {
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    min-width: 0;
     max-width: 100%;
     height: auto;
     overflow: visible;
@@ -62,6 +93,29 @@ body.hide-dots .rotate-dot {
     user-select: none;
     -webkit-user-select: none;
     touch-action: none;
+}
+
+/* remove, add buttons */
+.sidebar-remove,
+.sidebar-add {
+    flex-shrink: 0;
+    padding: 0.5em;
+    border: 0;
+    background: none;
+    color: var(--home-border);
+    font: 200 clamp(15px, 4.2vw, 20px) var(--font-serif);
+    line-height: normal;
+    cursor: pointer;
+}
+.sidebar-add {
+    margin-top: auto;
+}
+.sidebar-remove:hover,
+.sidebar-remove:focus-visible,
+.sidebar-add:hover,
+.sidebar-add:focus-visible {
+    outline: none;
+    color: var(--home-text);
 }
 
 /* canvas */

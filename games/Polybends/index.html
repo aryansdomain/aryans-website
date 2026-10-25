@@ -28,7 +28,12 @@
 
     <main class="game">
         <!-- where the pieces are -->
-        <div id="sidebar" class="sidebar"></div>
+        <div id="sidebar" class="sidebar">
+            <div id="sidebar-shapes" class="sidebar-shapes"></div>
+
+            <!-- add a shape -->
+            <button id="add-shape" class="sidebar-add" aria-label="Add Shape"><i class="fa-solid fa-plus"></i></button>
+        </div>
 
         <!-- where the pieces are placed -->
         <svg id="canvas" class="canvas"></svg>
@@ -39,6 +44,9 @@
             <button id="redo"  class="canvas-tool" aria-label="Redo" disabled><i class="fa-solid fa-rotate-right"></i></button>
             <button id="clear" class="canvas-tool" aria-label="Clear"        ><i class="fa-solid fa-trash-can"></i></button>
         </div>
+
+        <!-- roundness of the shape -->
+        <p id="roundness" class="roundness" aria-live="polite" hidden></p>
     </main>
 
     <!-- how to play popup -->
@@ -52,7 +60,7 @@
 
             <p>Play with polybends! Drag them from the sidebar and rotate them with the dot attached to each.</p>
 
-            <p>Adjust their shape in the settings menu.</p>
+            <p>Make new shapes with the button at the bottom of the sidebar.</p>
 
             <button class="popup-close">Play</button>
 
@@ -80,15 +88,29 @@
                 <input id="snap" class="number-input" type="number" min="0" max="180" step="1" value="0">
             </div>
 
-            <!-- shape of the polybend -->
+            <button class="popup-close">Done</button>
+        </div>
+    </div>
+
+    <!-- new shape popup -->
+    <div id="new-shape" class="popup" hidden>
+        <div class="popup-box settings-box" role="dialog" aria-modal="true" aria-labelledby="new-shape-title">
+            <h2 id="new-shape-title" class="popup-title">New Shape</h2>
+
             <div class="setting">
                 <label for="sides">Number of Sides</label>
                 <input id="sides" class="number-input" type="number" min="3" step="1" value="5">
             </div>
 
+            <!-- click the dot on each arc to flip curvature -->
             <svg id="shape-preview" class="shape-preview" role="img" aria-label="Shape of the polybend"></svg>
 
-            <button class="popup-close">Done</button>
+            <div class="setting">
+                <span>Add Mirrored</span>
+                <button class="toggle mirror-toggle" role="switch" aria-checked="false" aria-label="Add Mirrored"></button>
+            </div>
+
+            <button id="add-shape-done" class="popup-close">Add</button>
         </div>
     </div>
 
