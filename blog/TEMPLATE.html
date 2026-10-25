@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aryan Singhal - Title</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="../style.css">
+
+    <!-- MathJax for LaTeX -->
+    <script type="text/javascript" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+</head>
+<body>
+    <!-- dots wandering background -->
+    <canvas id="dots" aria-hidden="true"></canvas>
+
+    <header class="topbar">
+        <div class="topbar-leading">
+            <a class="back-button" href="../" aria-label="Back"></a>
+        </div>
+        <h1 class="topbar-title">Title</h1>
+        <p class="topbar-date">Date</p>
+    </header>
+
+    <main class="text">
+        <h3>Section</h3>
+        <p>A paragraph of text, with inline math like \( x^2 \).</p>
+
+        \[ \text{a display equation} \]
+
+        <h4>Subsection</h4>
+        <p>Another paragraph, followed by a graph.</p>
+
+        <p>Graph Title</p>
+        <iframe class="graph" src="https://www.desmos.com/calculator/GRAPH_ID?embed"></iframe>
+    </main>
+
+    <!-- lens blur around screen edges -->
+    <div id="lens" aria-hidden="true">
+        <div></div>
+        <div></div>
+    </div>
+
+    <script src="../../scripts/utils.js"></script>
+    <script src="../../scripts/oval.js"></script>
+    <script src="../../scripts/dots.js"></script>
+    <script src="../../scripts/back.js"></script>
+    <script>
+        showDots(0);
+        placeLensBlur(document.getElementById("lens"));
+    </script>
+</body>
+</html>
