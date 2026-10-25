@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aryan Singhal - Poly &times; Trig = Linear?</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- MathJax for LaTeX -->
+    <script type="text/javascript" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+
+    <!-- Plotly.js for Graphs -->
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+</head>
+<body>
+    <!-- dots wandering background -->
+    <canvas id="dots" aria-hidden="true"></canvas>
+
+    <header class="topbar">
+        <div class="topbar-leading">
+            <a class="back-button" href="./" aria-label="Back"></a>
+        </div>
+        <h1 class="topbar-title">Poly &times; Trig = Linear?</h1>
+        <p class="topbar-date">Feb 18, 2025</p>
+    </header>
+
+    <main class="text">
+        <h3>Intro</h3>
+        <p>I was watching a youtube video the other day, and the guy was talking about this particular limit:</p>
+        \[ \lim_{x \to 0} \sin\left(\frac{1}{x}\right) \cdot x^2\]
+
+        <p>The solution was simple - use the squeeze theorem, x squared, yada yada. I graphed up the function to see the erratic behavior of it as x approaches 0, and I found something really fun:</p>
+
+        <div id="just_sin" class="graph"></div>
+
+        <p>If you haven't figured it out by now, the zoomed out graph looks almost exactly like a line, specifically f(x) = x. I found nothing about this online so I thought it would be fun to post about it here!</p>
+        <h3>So... how does this happen?</h3>
+        <p>We're trying to show that</p>
+        \[ \sin(\frac{1}{x}) \cdot x^2\ = x, \text{ for large } x\]
+
+        <h4>1. Good Ol' Plugging and Chugging</h4>
+        <p>First I tried plugging infinity into the equation (the largest x possible), but that just resulted in \( 0 \cdot \infty \). Very disappointing :(</p>
+
+        <h4>2. Shake It Off... to the 3rd Term</h4>
+        <p> Let's use our good old friend Taylor to expand \( \sin(y) \) around \( 0 \):</p>
+
+        \[
+        \sin(y) \approx y - \frac{y^3}{6} + O(\frac{y^5}{24}).
+        \]
+
+        <p>Setting \( y = \frac{1}{x} \), we get:</p>
+
+        \[
+        \sin(\frac{1}{x}) \approx \frac{1}{x} - \frac{1}{6x^3} + O(\frac{1}{24x^5}).
+        \]
+
+        <p>Now, multiplying both sides by \( x^2 \), we get:</p>
+
+        \[
+        \sin(\frac{1}{x}) \cdot x^2 \approx x - \frac{1}{6x} - O(\frac{1}{24x^3}).
+        \]
+
+        <p>Now, if we plug in a huge number for x, we see all those terms (even the remainder terms, since they just have higher powers of x in their denominators) beautifully vanish, leaving</p>
+
+        \[ \sin(\frac{1}{x}) \cdot x^2\ = x, \text{ for large } x.\]
+
+        <h4>3. The BORING solution that NOBODY likes</h4>
+        <p>During the coding of this post, I noticed that many of you NERDS will be screaming at be just to divide \( x^2 \) from both sides, giving</p>
+
+        \[ \sin(\frac{1}{x}) \approx \frac{1}{x}\]
+
+        <p>And you can obviously see why this works if you plug in a large x.</p>
+
+        <div id="sin_x" class="graph"></div>
+
+        <p>You guys might be saying "This is obvious, just start with \(\sin(x) \approx x\) and do some algebra, but isn't that the case with all identities and equations like \(e^{i \pi} + 1 = 0\)? All I found here was a way to backwards-transform a cool fact into something even cooler - a complex equation looks extremely simple when you zoom out the graph :)</p>
+
+        <h3>Something Extra</h3>
+        <p>Now, as a little exercise to the reader, try seeing what happens when you replace the sine with cosine.</p>
+        <p>For a cooler method, try taking the derivative of both sides of our last equation.</p>
+    </main>
+
+    <!-- lens blur around screen edges -->
+    <div id="lens" aria-hidden="true">
+        <div></div>
+        <div></div>
+    </div>
+
+    <script src="../../scripts/utils.js"></script>
+    <script src="../../scripts/oval.js"></script>
+    <script src="../../scripts/dots.js"></script>
+    <script>
+        showDots(0);
+        placeLensBlur(document.getElementById("lens"));
+    </script>
+
+    <!-- Graph Scripts -->
+
+    <!-- Just sin(1/x)*x^2 -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var xValues = [];
+            var yValues = [];
+
+            for (let x = -1000; x <= 1000; x += 0.01) {
+                x = parseFloat(x.toFixed(2));
+                xValues.push(x);
+                yValues.push(Math.sin(1 / x) * x ** 2);
+            }
+
+            var trace = {
+                x: xValues,
+                y: yValues,
+                mode: 'lines',
+                name: 'f(x) = sin(1/x) * x^2',
+                line: { color: 'blue' }
+            };
+
+            var layout = {
+                title: "Pssst... zoom out",
+                xaxis: {
+                    title: "x",
+                    range: [-0.2, 0.2] // Set initial zoom for x-axis
+                },
+                yaxis: {
+                    title: "sin(1/x) * x^2",
+                    range: [-0.2, 0.2] // Set initial zoom for y-axis
+                }
+            };
+
+            setTimeout(() => {
+                Plotly.newPlot("just_sin", [trace], layout);
+            }, 100);
+        });
+    </script>
+
+    <!-- sin(1/x)*x^2 compared with x -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var xValues = [];
+            var yValues1 = [];  // First function: sin(1/x) * x^2
+            var yValues2 = [];  // Second function: x - 1/x
+
+            for (let x = -1000; x <= 1000; x += 0.1) {
+                x = parseFloat(x.toFixed(2));
+                if (Math.abs(x) > 0.01) {  // Avoid division by zero
+                    xValues.push(x);
+                    yValues1.push(Math.sin(1 / x) * x ** 2);
+                    yValues2.push(x); // New function
+                }
+            }
+
+            var trace1 = {
+                x: xValues,
+                y: yValues1,
+                mode: 'lines',
+                name: 'f(x) = sin(1/x) * x^2',
+                line: { color: 'blue' }
+            };
+
+            var trace2 = {
+                x: xValues,
+                y: yValues2,
+                mode: 'lines',
+                name: 'g(x) = x', // Second equation
+                line: { color: 'red' }
+            };
+
+            var layout = {
+                title: "Comparing the Two",
+                xaxis: { title: "x", range: [-3, 3] },  // Initial zoom
+                yaxis: { title: "f(x), g(x)", range: [-3, 3] }
+            };
+
+            setTimeout(() => {
+                Plotly.newPlot("sin_x", [trace1, trace2], layout);  // ✅ Two traces added
+            }, 100);
+        })
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,119 @@
+/* boxes */
+#blog {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    font-size: clamp(14px, 1.6vw, 22px);
+    touch-action: none; /* make dragging scroll only the row */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent; /* no flash over boxes when tapped */
+}
+#blog-stage {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    animation: blog-in 600ms ease both;
+}
+
+/* topbar over boxes */
+.topbar {
+    pointer-events: none;
+}
+.topbar a {
+    pointer-events: auto;
+}
+@keyframes blog-in {
+    from { opacity: 0; }
+}
+
+/* each box */
+.blog-box {
+    cursor: pointer;
+    transition: opacity 400ms ease;
+}
+.blog-box:focus {
+    outline: none;
+}
+.blog-box.hidden {
+    visibility: hidden;
+    pointer-events: none;
+}
+.blog-box.dim { /* not in the row currently focused */
+    opacity: 0.4;
+}
+
+/* box's, background's border */
+.blog-box .frame {
+    fill: var(--background);
+    stroke: var(--box-border);
+    stroke-width: 1;
+    transition: stroke 300ms ease;
+}
+.blog-box:hover .frame,
+.blog-box:focus-visible .frame {
+    stroke: var(--text);
+}
+
+/* glow on hover */
+.blog-box .glow {
+    opacity: 0;
+    transition: opacity 300ms ease;
+}
+.blog-box:hover .glow,
+.blog-box:focus-visible .glow {
+    opacity: 1;
+}
+
+/* liquid filter */
+.blog-box.liquid .frame,
+.blog-box.liquid .glow {
+    visibility: hidden;
+}
+
+/* text of box */
+.blog-box text {
+    fill: var(--text);
+    font-family: var(--font-serif);
+    font-weight: 200;
+    letter-spacing: 0.05em;
+    text-anchor: middle;
+    dominant-baseline: central;
+}
+
+/* headings */
+.text h3,
+.text h4 {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 680px;
+    padding: 0 var(--text-side);
+    margin-bottom: 0;
+}
+
+/* date under title */
+.topbar-date {
+    grid-column: 2;
+    justify-self: center;
+    margin: 0.3em 0 0;
+    color: var(--box-border);
+    font: 200 clamp(14px, 3.5vw, 18px) var(--font-serif);
+    white-space: nowrap;
+}
+
+/* graphs */
+.graph {
+    flex-shrink: 0;
+    width: min(600px, calc(100% - 2 * var(--text-side)));
+    aspect-ratio: 1;
+}
+
+/* wide equations */
+.text mjx-container[display="true"] {
+    flex-shrink: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+}

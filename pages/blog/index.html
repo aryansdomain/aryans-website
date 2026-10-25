@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aryan Singhal - Blog</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- dots wandering background -->
+    <canvas id="dots" aria-hidden="true"></canvas>
+
+    <header class="topbar">
+        <div class="topbar-leading">
+            <a class="back-button" href="../../" aria-label="Back"></a>
+        </div>
+        <h1 class="topbar-title">Blog</h1>
+    </header>
+
+    <main id="blog">
+        <svg id="blog-stage" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <!-- liquid filter with blur -->
+                <filter id="liquid-filter" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+                    <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 24 -10" result="liquid"/>
+                    <feMorphology in="liquid" operator="dilate" radius="1" result="grown"/>
+
+                    <!-- base -->
+                    <feFlood class="liquid-fill" result="fill-color"/>
+                    <feComposite in="fill-color" in2="grown" operator="in" result="base"/>
+
+                    <!-- border -->
+                    <feComposite in="grown" in2="liquid" operator="out" result="outline"/>
+                    <feFlood flood-color="#000" result="border-color"/>
+                    <feComposite in="border-color" in2="outline" operator="in" result="border-solid"/>
+                    <feColorMatrix id="liquid-border-alpha" in="border-solid" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0" result="dark"/>
+
+                    <!-- chromatic aberration -->
+                    <feOffset class="split-red" in="dark" dx="0" dy="0" result="dark-red"/>
+                    <feFlood flood-color="#0ff" result="cyan"/>
+                    <feComposite in="cyan" in2="dark-red" operator="in" result="ink-red"/>
+                    <feFlood flood-color="#f0f" result="magenta"/>
+                    <feComposite in="magenta" in2="dark" operator="in" result="ink-green"/>
+                    <feOffset class="split-blue" in="dark" dx="0" dy="0" result="dark-blue"/>
+                    <feFlood flood-color="#ff0" result="yellow"/>
+                    <feComposite in="yellow" in2="dark-blue" operator="in" result="ink-blue"/>
+                    <feBlend in="ink-red"   in2="base"           mode="multiply" result="with-red"/>
+                    <feBlend in="ink-green" in2="with-red"       mode="multiply" result="with-red-green"/>
+                    <feBlend in="ink-blue"  in2="with-red-green" mode="multiply"/>
+                </filter>
+
+                <!-- hover glow around boxes -->
+                <filter id="subbox-glow" x="-100%" y="-100%" width="300%" height="300%">
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur"/>
+                    <feFlood class="glow-fill"/>
+                    <feComposite in2="blur" operator="in" result="glow"/>
+                    <feComposite in="glow" in2="SourceAlpha" operator="out"/>
+                </filter>
+            </defs>
+
+            <!-- chromatic aberration of each box -->
+            <defs id="lens-filters"></defs>
+
+            <!-- scene -->
+            <g id="blog-scene">
+                <g id="liquid-shapes" filter="url(#liquid-filter)"></g>
+                <g id="blog-boxes"></g>
+            </g>
+        </svg>
+    </main>
+
+    <!-- lens blur around screen edges -->
+    <div id="lens" aria-hidden="true">
+        <div></div>
+        <div></div>
+    </div>
+
+    <script src="../../scripts/utils.js"></script>
+    <script src="../../scripts/oval.js"></script>
+    <script src="../../scripts/dots.js"></script>
+    <script src="../../scripts/blob.js"></script>
+    <script src="blog.js"></script>
+    <script>
+        showDots(0);
+        placeLensBlur(document.getElementById("lens"));
+    </script>
+</body>
+</html>
