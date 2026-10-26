@@ -107,9 +107,6 @@ body.hide-dots .rotate-dot {
     line-height: normal;
     cursor: pointer;
 }
-.sidebar-add {
-    margin-top: auto;
-}
 .sidebar-remove:hover,
 .sidebar-remove:focus-visible,
 .sidebar-add:hover,
