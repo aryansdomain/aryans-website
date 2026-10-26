@@ -111,6 +111,22 @@
     border: 0;
 }
 
+/* tables */
+.text table {
+    flex-shrink: 0;
+    margin: 1em var(--text-side);
+    border-collapse: collapse;
+}
+.text th,
+.text td {
+    padding: 0.4em 1.2em;
+    border: 1px solid var(--box-border);
+    text-align: center;
+}
+.text th {
+    font-weight: 700;
+}
+
 /* wide equations */
 .text mjx-container[display="true"] {
     flex-shrink: 0;

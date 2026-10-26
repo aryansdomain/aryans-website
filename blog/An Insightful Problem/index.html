@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aryan Singhal - An Insightful Problem</title>
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="../style.css">
+
+    <!-- MathJax for LaTeX -->
+    <script type="text/javascript" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+</head>
+<body>
+    <!-- dots wandering background -->
+    <canvas id="dots" aria-hidden="true"></canvas>
+
+    <header class="topbar">
+        <div class="topbar-leading">
+            <a class="back-button" href="../" aria-label="Back"></a>
+        </div>
+        <h1 class="topbar-title">An Insightful Problem</h1>
+        <p class="topbar-date">Oct 26, 2026</p>
+    </header>
+
+    <main class="text">
+        <h3>Introduction</h3>
+
+        <p>Somewhere in early 2026, I came across the following problem. I think it was labeled Problem 26, which goes along nicely with the two 26s in the date.</p>
+
+        <p>It's worth noting that I didn't even know what differential equations were at that time, and in hindsight the problem is pretty elementary.</p>
+
+        <iframe class="graph" src="https://www.desmos.com/calculator/hpujxvzdmf?embed"></iframe>
+
+        <p>Observe the above configuration of four particles. At every moment in time, the velocity of a particle is set to the position of the next clockwise particle.</p>
+
+        <p>For example, initially the velocity of A is set to \((3, 4)\), the position of B, so in 1 second A will translate by \((3, 4)\). This doesn't actually happen, though, because A's velocity is updated at every moment in time.</p>
+
+        <p>The question is: how will the particles behave? What about for negative time? And can you generalize to any starting position, limited to only this radius 1 circular arrangement?</p>
+
+
+
+        <h3>Initial Work</h3>
+
+        <p>Spoilers for the problem's solution follow.</p>
+
+        <p>The day after I discovered this, I started thinking about it in school. I had an opportunity in math class, the one place where I <em>should</em> be thinking about math, to sit down and work on it.</p>
+
+        <p>I discovered pretty easily that you could define functions \(A(t), B(t), C(t), D(t)\), for the particles' positions, and come up with the equations</p>
+
+        \[A'(t) = B(t), \quad B'(t) = C(t), \quad C'(t) = D(t), \quad D'(t) = A(t),\]
+
+        <p>which become</p>
+
+        \[A'''' = A, \quad B'''' = B, \quad C'''' = C, \quad D'''' = D,\]
+
+        <p>or</p>
+
+        \[A^{(4)} = A, \quad B^{(4)} = B, \quad C^{(4)} = C, \quad D^{(4)} = D,\]
+
+        <p>with the initial conditions being that the zeroth, first, second, and third derivatives equal positions of particles (e.g. \(A^{(3)} = D \ \)).</p>
+
+        <p>And here I was stuck. I could make little more progress on the problem!</p>
+
+        <p>I had some ideas, though, like from the equation \(f'(t) = f(t)\), a function like \(f(t) = (x_0e^t, y_0e^t)\) could satisfy the equation, where \((x_0, y_0)\) are the initial positions of each of the dots. The problem was that this didn't work for the initial conditions.</p>
+
+
+
+        <h3>A Happy Mistake</h3>
+
+        <p>One day, I was again working on the equation \(f^{(4)} = f\). When I wrote it down in my notebook, it slipped my mind to write the parentheses! So I wrote \(f^4 = f\) instead.</p>
+
+        <p>I went to fix my mistake, but while looking for my eraser, I thought <em>Huh. That's funny. The solutions are the third roots of unity, and zero! Maybe there's something like differential roots of unity...</em></p>
+
+        <p>Here, I knew that I was kind of breaking the laws of math, treating functions as variables and differentials as powers, but this route really did seem interesting.</p>
+
+        <p>So instead of erasing what I wrote down, I went back to the problem. I thought about what the first "differential root of unity" would be. Well, it would satisfy \(f^{(2)} = f\), giving the solutions \(f = e^t, e^{-t}\).</p>
+
+        <p>But then, there were two first "differential roots of unity", which didn't sit well with me. How could I fix this?</p>
+
+        <p>Well, I could just bump these functions up to be the second differential roots of unity! So then, my process from going from the regular \(n\)th roots to the differential ones was:</p>
+
+        \[f^n = 1 \implies f^{n+1} = f \implies f^{(n)} = f,\]
+
+        <p>where the second step is kind of the rule-breaking one, transforming the variable \(f\) into a function. It didn't really feel right to me that the power was decreasing by 1 in this step, but it seemed less "weird" or fundamental than the issue of there being two first differential roots.</p>
+
+
+
+        <h3>Putting it Together</h3>
+
+        <p>At this point, I was on a roll! I had to make a table.</p>
+
+        <table>
+            <tr>
+                <th>\(n\)</th>
+                <th>Regular</th>
+                <th>Differential</th>
+            </tr>
+            <tr>
+                <td>\(1\)</td>
+                <td>\(1\)</td>
+                <td>\(e^t\)</td>
+            </tr>
+            <tr>
+                <td>\(2\)</td>
+                <td>\(1, -1\)</td>
+                <td>\(e^t, e^{-t}\)</td>
+            </tr>
+            <tr>
+                <td>\(3\)</td>
+                <td>\(1, \omega, \omega^2\)</td>
+                <td>\(e^t, \)</td>
+            </tr>
+        </table>
+
+        <p>I couldn't fill in that last unfinished entry, and I suspect the solution is moderately complex (pun not intended).</p>
+
+        <p>Now, what was the row where \(n = 4\)? That was the problem I needed to solve, the solutions to \(f^{(4)} = f\). Well, two entries were \(e^x\) and \(e^{-x}\), taken from the \(n = 2\) row, and I realized that the last two were \(\sin x\) and \(\cos x\), corresponding to \(i\) and \(-i\) (<b>not</b> respectively, in fact you can choose which is which).</p>
+
+        <p>How did I use these to get my answer? I just expressed, for example, \(A(t)\) as a linear combination (vector space?!) of these roots of unity:</p>
+
+        \begin{align}
+            A(t) = (&c_1e^t + c_2e^{-t} + c_3\sin t + c_4\cos t, \\
+                    &c_5e^t + c_6e^{-t} + c_7\sin t + c_8\cos t),
+        \end{align}
+
+        <p>and then solved the system</p>
+        
+        \[\begin{cases}
+            A   (0) = (2, 5) \\
+            A'  (0) = (3, 4) \\
+            A'' (0) = (2, 3) \\
+            A'''(0) = (1, 4)
+        \end{cases},\]
+
+        <p>which is not really <em>that</em> computation-heavy once you start doing it.</p>
+
+        <p>In hindsight, I didn't need to solve a full system, and I could have just recognized the differences between the right-hand-sides in the system, and tailored the signs of \(\sin t\) and \(\cos t\) accordingly.</p>
+
+
+
+        <h3>The End</h3>
+
+        <p>And finally, I had my solution:</p>
+
+        \begin{align}
+            A(t) = \left(2e^{t} + \sin t, 4e^{t} + \cos t\right), \\
+            B(t) = \left(2e^{t} + \cos t, 4e^{t} - \sin t\right), \\
+            C(t) = \left(2e^{t} - \sin t, 4e^{t} - \cos t\right), \\
+            D(t) = \left(2e^{t} - \cos t, 4e^{t} + \sin t\right).
+        \end{align}
+
+        <p>This graph shows the motion of the particles as \(-5 \le t \le 1.5\) (move the black dot to adjust the initial position of the dots):</p>
+
+        <iframe class="graph" src="https://www.desmos.com/calculator/n2gx0u4bzn?embed"></iframe>
+
+        <p>This graph shows the paths the dots trace out (again, move the black dot):</p>
+
+        <iframe class="graph" src="https://www.desmos.com/calculator/qrblmwn7wy?embed"></iframe>
+
+        <p>What I think is really cool is that as you move the black dot in the second graph, the resulting spiral looks three-dimensional, and the moving of the black dot corresponds to changing your perspective. The points seem to spiral out of the screen, revolving around each other. I'm really curious to investigate why this happens!</p>
+
+
+
+        <h3>Conclusion</h3>
+
+        <p>I love this problem! Even though it was simple, it was my first introduction to differential equations, and allowed me to discover independently what I now know is the characteristic polynomial of a differential equation.</p>
+    </main>
+
+    <!-- lens blur around screen edges -->
+    <div id="lens" aria-hidden="true">
+        <div></div>
+        <div></div>
+    </div>
+
+    <script src="../../scripts/utils.js"></script>
+    <script src="../../scripts/oval.js"></script>
+    <script src="../../scripts/dots.js"></script>
+    <script src="../../scripts/back.js"></script>
+    <script>
+        showDots(0);
+        placeLensBlur(document.getElementById("lens"));
+    </script>
+</body>
+</html>
