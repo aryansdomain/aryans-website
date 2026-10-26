@@ -48,7 +48,11 @@
                     <feComposite in="yellow" in2="dark-blue" operator="in" result="ink-blue"/>
                     <feBlend in="ink-red"   in2="base"           mode="multiply" result="with-red"/>
                     <feBlend in="ink-green" in2="with-red"       mode="multiply" result="with-red-green"/>
-                    <feBlend in="ink-blue"  in2="with-red-green" mode="multiply"/>
+                    <feBlend in="ink-blue"  in2="with-red-green" mode="multiply" result="split"/>
+
+                    <!-- plain border when not split -->
+                    <feBlend in="dark" in2="base" mode="multiply" result="plain"/>
+                    <feComposite id="liquid-split-mix" in="split" in2="plain" operator="arithmetic" k1="0" k2="0" k3="1" k4="0"/>
                 </filter>
 
                 <!-- hover glow around boxes -->

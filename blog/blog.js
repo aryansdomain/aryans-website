@@ -1,29 +1,30 @@
 // ------------------------ SETTINGS ------------------------
 
-const TURN_TIME = 700; // ms   time boxes take to turn
+const TURN_TIME = 700; // time boxes take to turn
 
 // LIQUID
-const LIQUID_BLUR = 1; // px   how far apart shapes can be and still join
+const LIQUID_BLUR = 1; // how far apart shapes can be and still join
 
 // LAYOUT
-const LEVEL_SCALE = [1, 0.8, 0.8]; //      size of years, months and entries compared to font of blog
-const BOX_PADDING = 1.6;           // em   space between label of box and its sides
-const BOX_HEIGHT  = 3;             // em   box's height
-const BOX_GAP     = 24;            // px   space between boxes
-const FIRST_GAP   = 56;            // px   space between a box and the first subbox
-const ROW_PADDING = 32;            // px   space between a row and the sides of the screen
+const LEVEL_SCALE = [1, 0.8, 0.8]; // size of years, months and entries compared to font of blog
+const BOX_PADDING = 1.6;           // space between label of box and its sides
+const BOX_HEIGHT  = 3;             // box's height
+const BOX_GAP     = 24;            // space between boxes
+const FIRST_GAP   = 56;            // space between a box and the first subbox
+const ROW_PADDING = 32;            // space between a row and the sides of the screen
 
 // SCROLLING
-const SCROLL_SMOOTH  = 80;  // ms   bigger -> smoother, more delayed scrolling
-const DRAG_THRESHOLD = 5;   // px   how far the pointer moves before it starts dragging
-const SCROLL_PAST    = 400; // px   how far past the row ends the row can be scrolled
+const SCROLL_SMOOTH  = 80;  // bigger -> smoother, more delayed scrolling
+const DRAG_THRESHOLD = 5;   // how far the pointer moves before it starts dragging
+const SCROLL_PAST    = 400; // how far past the row ends the row can be scrolled
 
 
 
 // ------------------------ ENTRIES ------------------------
 
 const entries = [
-    { title: "Poly x Trig = Linear?", date: "2025-02-18", link: "2025feb18.html" }
+    { title: "Poly x Trig = Linear?", date: "2025-02-18", link: "Poly x Trig = Linear/" },
+    { title: "An Insightful Problem", date: "2026-10-26", link: "An Insightful Problem/" }
 ];
 
 // title of each entry moves to the top of the page
@@ -45,6 +46,7 @@ const liquidBlur   = document.querySelector("#liquid-filter feGaussianBlur");
 // chromatic aberration toward screen edge
 const liquidSplitRed  = smoothOffset(document.querySelector("#liquid-filter .split-red"));
 const liquidSplitBlue = smoothOffset(document.querySelector("#liquid-filter .split-blue"));
+const liquidSplitMix  = document.getElementById("liquid-split-mix"); // between plain and split border
 const lensFilters = document.getElementById("lens-filters"); // filter for each box
 const lensColors  = lensBackground();
 setLiquidBorderAlpha();
@@ -439,15 +441,15 @@ function drawLiquid() {
     liquidBlur.setAttribute("stdDeviation", Math.max(0.01, LIQUID_BLUR * liquidity));
 
     // split colors
-    let split = { x: 0, y: 0 };
-    family.boxes.forEach(function (box) {
-        const spot = screenSpot(box);
-        const here = lensSplit(spot.x, spot.y, 1);
-        if (Math.hypot(here.x, here.y) > Math.hypot(split.x, split.y)) split = here;
-    });
+    const parentSpot = screenSpot(family.parent);
+    const split = lensSplit(parentSpot.x, parentSpot.y, 1);
     const local = turn(split.x, split.y, -camera.angle); // turn the liquid layer as the scene turns
     liquidSplitRed ( local.x,  local.y);
     liquidSplitBlue(-local.x, -local.y);
+
+    // plain border when not split, fully split from 1 pixel
+    const amount = Math.min(1, Math.hypot(split.x, split.y));
+    setAttributes(liquidSplitMix, { k2: amount, k3: 1 - amount });
 }
 
 // split box toward edges of the screen
@@ -562,8 +564,7 @@ function draw() {
 blog.addEventListener("wheel", function (event) {
     event.preventDefault();
     if (turning) return;
-    const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-    scrollTarget = clampScroll(scrollTarget + delta);
+    scrollTarget = clampScroll(scrollTarget + event.deltaX);
 }, { passive: false });
 
 // dragging scrolls the row sideways
