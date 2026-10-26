@@ -306,13 +306,11 @@ body {
     color: rgba(0, 0, 0, 0.5);
     font: 20px / 1 var(--font-serif);
     cursor: pointer;
-    transition: transform 200ms ease, color 200ms ease;
 }
 #replay:hover,
 #replay:focus-visible {
     outline: none;
     color: var(--text);
-    transform: scale(1.15);
 }
 
 
