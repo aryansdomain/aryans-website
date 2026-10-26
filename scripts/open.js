@@ -138,8 +138,8 @@ function openPage(from, text, labelStyle, link, bordered, fadeOut) {
             label.style.top           = lerp(from.y + from.height / 2, spot.y,                e) + "px";
             label.style.fontSize      = lerp(startSize,                spot.size,             e) + "px";
             label.style.letterSpacing = lerp(startSpacing,             spot.spacing,          e) + "px";
-            light.style.opacity = 1 - e;
-            bold.style.opacity  =     e;
+            light.style.opacity = fadeOut ? 0 : 1 - e;
+            bold.style.opacity  = fadeOut ? 1 :     e;
 
             // fade out label
             if (fadeOut) {
