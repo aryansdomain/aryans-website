@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aryan Singhal - Page Not Found</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .text p {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- dots wandering background -->
+    <canvas id="dots" aria-hidden="true"></canvas>
+
+    <header class="topbar">
+        <h1 class="topbar-title">Page Not Found</h1>
+    </header>
+
+    <main class="text">
+        <p>This page doesn't exist.</p>
+
+        <p>Go back <a href="/">home</a>.</p>
+    </main>
+
+    <!-- lens blur around screen edges -->
+    <div id="lens" aria-hidden="true">
+        <div></div>
+        <div></div>
+    </div>
+
+    <script src="/scripts/utils.js"></script>
+    <script src="/scripts/oval.js"></script>
+    <script src="/scripts/dots.js"></script>
+    <script src="/scripts/back.js"></script>
+    <script>
+        showDots(0);
+        placeLensBlur(document.getElementById("lens"));
+    </script>
+</body>
+</html>
