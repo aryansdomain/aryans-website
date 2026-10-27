@@ -741,11 +741,12 @@ function drawTrails(burstTime) {
 
     // chromatic abberation
     const splitting = introStrength > 0 && LENS_OFFSET > 0;
-    const splitLevels = [[], []];
+    const wholeLevels = [];           // segments that dont split
+    const splitLevels = [[], [], []]; // rgb parts of segments that split
     if (splitting) {
         for (let i = 0; i < TRAIL_FADE_STEPS; i++) {
-            splitLevels[0].push(new Path2D());
-            splitLevels[1].push(new Path2D());
+            wholeLevels.push(new Path2D());
+            for (const channelLevels of splitLevels) channelLevels.push(new Path2D());
         }
     }
 
@@ -757,13 +758,21 @@ function drawTrails(burstTime) {
         const level = Math.min(TRAIL_FADE_STEPS - 1, Math.floor(timeLeft * TRAIL_FADE_STEPS));
         levels[level].moveTo(a.x, a.y);
         levels[level].lineTo(b.x, b.y);
+        if (!splitting) return;
 
-        if (splitting) {
-            const split = lensSplit((a.x + b.x) / 2, (a.y + b.y) / 2, introStrength);
-            splitLevels[0][level].moveTo(a.x + split.x, a.y + split.y);
-            splitLevels[0][level].lineTo(b.x + split.x, b.y + split.y);
-            splitLevels[1][level].moveTo(a.x - split.x, a.y - split.y);
-            splitLevels[1][level].lineTo(b.x - split.x, b.y - split.y);
+        // draw unsplit segments only once
+        const split = lensSplit((a.x + b.x) / 2, (a.y + b.y) / 2, introStrength);
+        if (split.x === 0 && split.y === 0) {
+            wholeLevels[level].moveTo(a.x, a.y);
+            wholeLevels[level].lineTo(b.x, b.y);
+            return;
+        }
+
+        // draw split segments three times
+        for (let channel = 0; channel < 3; channel++) {
+            const side = 1 - channel; // red 1, green 0, blue -1
+            splitLevels[channel][level].moveTo(a.x + split.x * side, a.y + split.y * side);
+            splitLevels[channel][level].lineTo(b.x + split.x * side, b.y + split.y * side);
         }
     }
 
@@ -808,11 +817,16 @@ function drawTrails(burstTime) {
 
     // chromatic aberration toward the edges
     ctx.globalCompositeOperation = "lighter";
+    ctx.strokeStyle = colors.trail;
+    for (let i = 0; i < TRAIL_FADE_STEPS; i++) {
+        ctx.globalAlpha = TRAIL_ALPHA * (i + 1) / TRAIL_FADE_STEPS;
+        ctx.stroke(wholeLevels[i]);
+    }
     for (let channel = 0; channel < 3; channel++) {
         ctx.strokeStyle = colors.trailChannels[channel];
         for (let i = 0; i < TRAIL_FADE_STEPS; i++) {
             ctx.globalAlpha = TRAIL_ALPHA * (i + 1) / TRAIL_FADE_STEPS;
-            ctx.stroke(channel === 1 ? levels[i] : splitLevels[channel === 0 ? 0 : 1][i]);
+            ctx.stroke(splitLevels[channel][i]);
         }
     }
     ctx.globalCompositeOperation = "source-over";
