@@ -60,7 +60,7 @@ const TRAIL_FADE_STEPS = 10;  // number of brightness levels in the trail, more 
 // GLOW
 const TRAIL_GLOW_STEPS = 3;       // how many of the newest brightness levels of a trail glow
 const POINT_GLOW_SIZE = 0.0057;   // radius of glow around points (8px on a 1990x992 window)
-const POINT_GLOW_STRENGTH = 0.6;  // brightness of point
+const POINT_GLOW_STRENGTH = 0.3;  // brightness of point
 const TRAIL_GLOW_SIZE = 0.0043;   // width of the glow around trails, (6px on a 1990x992 window)
 const TRAIL_GLOW_STRENGTH = 0.2;  // brightness of trail
 const GLOW_RESOLUTION = 0.5;      // glow canvas pixels per canvas pixel, lower -> faster but blockier glow
@@ -229,8 +229,14 @@ function sizeCanvas() {
     // scale so drawing can be done using pixels
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-    // only draw glow while animating
-    const glowRatio = capture === null ? ratio * GLOW_RESOLUTION : 0;
+    // draw points and trails with webgl
+    const webgl = capture === null && gl !== null;
+    particleCanvas.width  = webgl ? canvas.width  : 0;
+    particleCanvas.height = webgl ? canvas.height : 0;
+    if (!webgl) particleCanvas.style.display = "none";
+
+    // only draw glow while animating without webgl
+    const glowRatio = capture === null && gl === null ? ratio * GLOW_RESOLUTION : 0;
     glowCanvas.width  = Math.round(width  * glowRatio);
     glowCanvas.height = Math.round(height * glowRatio);
     glowCtx.setTransform(glowRatio, 0, 0, glowRatio, 0, 0);
@@ -794,13 +800,11 @@ function drawTrails(burstTime) {
     // add a glow
     glowCtx.globalCompositeOperation = "lighter";
     glowCtx.strokeStyle = colors.glow;
+    glowCtx.lineWidth = TRAIL_GLOW_SIZE * Math.sqrt(width * height);
     for (let i = TRAIL_FADE_STEPS - TRAIL_GLOW_STEPS; i < TRAIL_FADE_STEPS; i++) {
         if (i < 0) continue;
-        for (let layer = 1; layer <= 3; layer++) {
-            glowCtx.lineWidth = TRAIL_GLOW_SIZE * Math.sqrt(width * height) * layer / 3;
-            glowCtx.globalAlpha = TRAIL_GLOW_STRENGTH / 3 * (i + 1) / TRAIL_FADE_STEPS;
-            glowCtx.stroke(levels[i]);
-        }
+        glowCtx.globalAlpha = TRAIL_GLOW_STRENGTH * (i + 1) / TRAIL_FADE_STEPS;
+        glowCtx.stroke(levels[i]);
     }
     glowCtx.globalCompositeOperation = "source-over";
 
@@ -1038,6 +1042,13 @@ function drawParticles(burstTime) {
     updatePoints(burstTime);
     updateTrails(burstTime);
 
+    // on the gpu
+    if (gl !== null) {
+        drawParticlesGL(burstTime);
+        return;
+    }
+
+    // on the 2d canvas
     glowCtx.clearRect(0, 0, width, height);
     drawTrails(burstTime);
     drawPoints(ctx, glowCtx);
