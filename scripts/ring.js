@@ -2,7 +2,7 @@
 
 const LAP_TIME = 15000;         // time ring takes to turn all the way around, at starting speed
 const FIRST_START_TIME = 3000;  // time ring takes to speed up the first time
-const        START_TIME = 1200; // time ring takes to speed up
+const        START_TIME = 600;  // time ring takes to speed up
 const         STOP_TIME = 800;  // time ring takes to slow down
 
 const SIDE_TURN_MIN_TIME = 600; // time ring takes to turn a box to the side when it's already close
