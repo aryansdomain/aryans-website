@@ -14,33 +14,23 @@ const TEXT_SCREEN_WIDTH = 0.5;       // how much of the width of the screen the 
 const TEXT_FONT_FAMILY = "Palatino"; // text font family
 const SAMPLE_SIZE = 100;             // size text is measured at, larger -> more accurate shape
 
-// 1. LOADING PERCENTAGE
-const PERCENT_FONT_FAMILY = "'Helvetica Neue'"; // loading percentage font family
-const FASTEST_LOAD_TIME = 1000;                 // quickest the percentage can go from 0 to 100
-const HOLD_TIME = 100;                          // time percentage is at 100% before shrinking
-const SHRINK_TIME = 200;                        // time percentage shrink takes
-const PERCENT_FADE_OUT = 100;                   // time percentage fade out takes
-const START_SIZE = 18;                          // text size of percentage at 0%
-const PEAK_SIZE = 26;                           // text size of percentage at 100%
-const BURST_SIZE = 14;                          // text size of percentage as it bursts
-const GROW_EASE = 2;                            // how hard the easing is, higher -> faster start, earlier slow-down
-
-// 2. BURST
+// 1. BURST
+const BURST_DELAY = 250;      // time after loading before points burst
 const BURST_TIME = 1500;      // time points take to fly out
 const BURST_END_SPEED = 0.6;  // ratio of final speed to burst speed
 const BURST_RADIUS = 1;       // size the ball the points burst out into
 const MIN_SLOWNESS = 0.55;    // ratio of BURST_TIME and FORM_TIME the fastest points take
 const SLOWNESS_SPREAD = 0.25; // how much longer the slowest points take, so they don't all land together
 
-// 3. DRIFT
+// 2. DRIFT
 const DRIFT_START_SPEED = 0.3; // when points reach this speed from burst, they start drifting
 const DRIFT_TIME = 2000;       // time points drift before heading to the text
 const DRIFT_REACH = 0.2;       // how far each drifting curve can reach
 
-// 4. FORM
+// 3. FORM
 const FORM_TIME = 2000; // time points take to travel to the text
 
-// 5. TOPBAR
+// 4. TOPBAR
 const TOPBAR_TIME = 900;           // time text takes to move up into the topbar
 const TOPBAR_TEXT_WIDTH = 0.12;    // how much of the width of the screen the text fills in the topbar
 const TOPBAR_MIN_TEXT_WIDTH = 130; // smallest topbar text can be
@@ -76,6 +66,7 @@ const TRAIL_GLOW_STRENGTH = 0.2;  // brightness of trail
 
 // DOTS
 const DOT_IMAGE_SIZES = [2, 4, 8, 16, 32, 64]; // widths points are drawn at
+const GLOW_SPRITE_SIZE = 64;                   // width the point glow is drawn at
 
 // CANVAS
 const MAX_INTRO_PIXEL_RATIO = 1.5; // maximum number of canvas pixels per screen pixel while animating
@@ -269,6 +260,7 @@ for (let i = 0; i < pointCount; i++) {
     points.push({
         burstEnd,
         driftCurve: { c2: randomNear(driftEnd, DRIFT_REACH), end: driftEnd }, // second control point and end of bezier curve
+        slowness: MIN_SLOWNESS + Math.random() * SLOWNESS_SPREAD,
         trail: [] // all points in the trail, oldest first
     });
 }
@@ -285,6 +277,11 @@ function drawPoints(target) {
         if (splitting) point.split = lensSplit(point.x, point.y, introStrength);
     }
 
+    // draw rgb parts once
+    function together(point) {
+        return !splitting || (target === ctx && point.split.x === 0 && point.split.y === 0);
+    }
+
     // glow
     if (POINT_GLOW_SIZE > 0 && POINT_GLOW_STRENGTH > 0) {
         target.globalCompositeOperation = "lighter";
@@ -293,8 +290,8 @@ function drawPoints(target) {
             if (!point.visible) continue;
 
             const size = POINT_GLOW_SIZE * screenSize * point.depthScale;
-            if (!splitting) {
-                target.drawImage(glowSprite, point.x - size, point.y - size, size * 2, size * 2);
+            if (together(point)) {
+                drawSprite(target, glowSprite, point.x - size, point.y - size, size * 2, size * 2);
                 continue;
             }
 
@@ -304,7 +301,7 @@ function drawPoints(target) {
                 const side = 1 - channel; // red 1, green 0, blue -1
                 const x = point.x + split.x * side;
                 const y = point.y + split.y * side;
-                target.drawImage(glowSprites[channel], x - size, y - size, size * 2, size * 2);
+                drawSprite(target, glowSprites[channel], x - size, y - size, size * 2, size * 2);
             }
         }
         target.globalCompositeOperation = "source-over";
@@ -323,10 +320,13 @@ function drawPoints(target) {
 
     // chromatic aberration toward the edges
     target.globalCompositeOperation = "lighter";
+    for (const point of points) {
+        if (point.visible && together(point)) stampDot(target, dotImages.text, point.x, point.y, POINT_RADIUS * screenSize * point.depthScale, ratio);
+    }
     for (let channel = 0; channel < 3; channel++) {
         const side = 1 - channel; // red 1, green 0, blue -1
         for (const point of points) {
-            if (!point.visible) continue;
+            if (!point.visible || together(point)) continue;
 
             const x = point.x + point.split.x * side;
             const y = point.y + point.split.y * side;
@@ -339,19 +339,11 @@ function drawPoints(target) {
 // the parts of point's path that don't change over time
 function pointPath(point) {
     const startPose = camera.start;
-    const pixelsToWorld = startPose.distance / camera.focal;
 
     const burstEndTime = BURST_TIME * point.slowness;
     const formDuration = FORM_TIME * point.slowness;
 
-    // where it bursts from
-    const across = point.startX * pixelsToWorld;
-    const down   = point.startY * pixelsToWorld;
-    const start = {
-        x: startPose.right.x * across - startPose.up.x * down,
-        y: startPose.right.y * across - startPose.up.y * down,
-        z: startPose.right.z * across - startPose.up.z * down
-    };
+    const start = { x: 0, y: 0, z: 0 }; // burst from the middle of the screen
 
     // first control point for drift, starting at the burst end speed
     const push = BURST_END_SPEED*DRIFT_TIME / (3*DRIFT_START_SPEED*burstEndTime);
@@ -458,31 +450,6 @@ function placePointsOnText() {
     for (let i = 0; i < ordered.length; i++) {
         ordered[i].targetX = targets[i].x;
         ordered[i].targetY = targets[i].y;
-    }
-}
-
-// assign to the points a destination inside the letters of the 100%
-function placePointsOnPercent() {
-    const covered = findTextPixels("100%", PERCENT_FONT_FAMILY);
-
-    // pick random covered pixel for each point
-    const shrink = BURST_SIZE / SAMPLE_SIZE;
-    const starts = [];
-    for (let i = 0; i < points.length; i++) {
-        const pixel = covered[Math.floor(Math.random() * covered.length)];
-        starts.push({
-            x: (pixel.x + Math.random()) * shrink,
-            y: (pixel.y + Math.random()) * shrink
-        });
-    }
-
-    // burst!
-    starts.sort(function (a, b) { return a.x - b.x; });
-    const ordered = points.slice().sort(function (a, b) { return a.burstEnd.x - b.burstEnd.x; });
-    for (let i = 0; i < ordered.length; i++) {
-        ordered[i].startX = starts[i].x;
-        ordered[i].startY = starts[i].y;
-        ordered[i].slowness = MIN_SLOWNESS + Math.random() * SLOWNESS_SPREAD; // so they don't all land together
     }
 }
 
@@ -696,16 +663,6 @@ function skipIntro() {
     showDots(TOPBAR_TIME);
 }
 
-// draw the loading percentage
-function drawPercent(percent, size, alpha) {
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = colors.text;
-    ctx.font = font(PERCENT_FONT_FAMILY, size);
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(Math.floor(percent) + "%", width / 2, height / 2);
-}
-
 // camera points toward middle of scene. starts, ends straight in front
 const camera = {
     x: 0, y: 0, z: 0,
@@ -871,36 +828,43 @@ function updateTrails(burstTime) {
     }
 }
 
-// glow around points
-function makeGlowSprite(color) {
-    // create sprite
-    const size = 64;
-    const sprite = document.createElement("canvas");
-    sprite.width = size;
-    sprite.height = size;
+// make the dot and glow onto one sheet
+const SPRITE_ROW_HEIGHT = Math.max(GLOW_SPRITE_SIZE, ...DOT_IMAGE_SIZES) + 2; // gap on each side
+let spriteSheet = null;
+
+// draw part of the sprite sheet
+function drawSprite(target, sprite, x, y, width, height) {
+    target.drawImage(spriteSheet, sprite.x, sprite.y, sprite.width, sprite.height, x, y, width, height);
+}
+
+// glow around points, in a row of the sprite sheet
+function makeGlowSprite(sheetCtx, color, row) {
+    const size = GLOW_SPRITE_SIZE;
+    const x = 1;
+    const y = row * SPRITE_ROW_HEIGHT + 1;
 
     // add color
-    const spriteCtx = sprite.getContext("2d");
-    const gradient = spriteCtx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    const gradient = sheetCtx.createRadialGradient(x + size / 2, y + size / 2, 0, x + size / 2, y + size / 2, size / 2);
     gradient.addColorStop(0, color);
     gradient.addColorStop(1, "transparent");
-    spriteCtx.fillStyle = gradient;
-    spriteCtx.fillRect(0, 0, size, size);
+    sheetCtx.fillStyle = gradient;
+    sheetCtx.fillRect(x, y, size, size);
 
-    return sprite;
+    return { x, y, width: size, height: size };
 }
 
 // draw a filled circle in every DOT_IMAGE_SIZE
-function makeDotImages(color) {
+function makeDotImages(sheetCtx, color, row) {
+    let x = 0;
+    const y = row * SPRITE_ROW_HEIGHT;
+    sheetCtx.fillStyle = color;
     return DOT_IMAGE_SIZES.map(function (size) {
-        const image = document.createElement("canvas");
-        image.width  = size + 2;
-        image.height = size + 2;
-        const imageCtx = image.getContext("2d");
-        imageCtx.fillStyle = color;
-        imageCtx.beginPath();
-        imageCtx.arc(size / 2 + 1, size / 2 + 1, size / 2, 0, Math.PI * 2);
-        imageCtx.fill();
+        sheetCtx.beginPath();
+        sheetCtx.arc(x + size / 2 + 1, y + size / 2 + 1, size / 2, 0, Math.PI * 2);
+        sheetCtx.fill();
+
+        const image = { x, y, width: size + 2, height: size + 2 };
+        x += size + 2;
         return image;
     });
 }
@@ -916,7 +880,7 @@ function stampDot(target, images, x, y, radius, ratio) {
         }
     }
     const half = radius * image.width / (image.width - 2);
-    target.drawImage(image, x - half, y - half, half * 2, half * 2);
+    drawSprite(target, image, x - half, y - half, half * 2, half * 2);
 }
 
 let colors = null;
@@ -934,12 +898,19 @@ function readColors() {
     };
     colors.textChannels  = splitChannels(colors.text);
     colors.trailChannels = splitChannels(colors.trail);
-    glowSprite = makeGlowSprite(colors.glow);
-    glowSprites = splitChannels(colors.glow).map(makeGlowSprite);
+
+    // text dots, rgb dots, glow, rgb glows
+    spriteSheet = document.createElement("canvas");
+    spriteSheet.width  = Math.max(GLOW_SPRITE_SIZE + 2, DOT_IMAGE_SIZES.reduce(function (sum, size) { return sum + size + 2; }, 0));
+    spriteSheet.height = 8 * SPRITE_ROW_HEIGHT;
+    const sheetCtx = spriteSheet.getContext("2d");
+
     dotImages = {
-        text: makeDotImages(colors.text),
-        channels: colors.textChannels.map(makeDotImages)
+        text: makeDotImages(sheetCtx, colors.text, 0),
+        channels: colors.textChannels.map(function (color, i) { return makeDotImages(sheetCtx, color, 1 + i); })
     };
+    glowSprite = makeGlowSprite(sheetCtx, colors.glow, 4);
+    glowSprites = splitChannels(colors.glow).map(function (color, i) { return makeGlowSprite(sheetCtx, color, 5 + i); });
 }
 
 // a color as its parts
@@ -963,8 +934,7 @@ readColors();
 // make fonts
 const fontTasks = [
     document.fonts.ready,
-    document.fonts.load(font(PERCENT_FONT_FAMILY, SAMPLE_SIZE), "0123456789%").catch(function() {}),
-    document.fonts.load(font(TEXT_FONT_FAMILY,    SAMPLE_SIZE), TEXT         ).catch(function() {})
+    document.fonts.load(font(TEXT_FONT_FAMILY, SAMPLE_SIZE), TEXT).catch(function() {})
 ]
 
 // everything that must finish before intro can start
@@ -980,22 +950,17 @@ const loadTasks = [
 
     // points
     Promise.all(fontTasks).then(function () {
-        placePointsOnPercent();
         placePointsOnText();
         findSettleTime();
     })
 ];
 
 // load everything
-let loadedCount = 0;
-for (const task of loadTasks) {
-    task.then(function () { loadedCount++; });
-}
+let loaded = false;
+Promise.all(loadTasks).then(function () { loaded = true; });
 
 // run
-let shownPercent = 0;
-let lastTime = null;
-let fullAt = null; // time the percentage reached 100
+let burstStart = null; // time the points burst
 
 let running = true;
 
@@ -1003,16 +968,8 @@ let running = true;
 function frame(now) {
     if (!running) return;
 
-    // track time
-    const elapsed = lastTime === null ? 0 : now - lastTime;
-    lastTime = now;
-
-    // increment percentage, but limit load time
-    const loadedPercent = 100 * loadedCount / loadTasks.length;
-    shownPercent = Math.min(loadedPercent, shownPercent + 100 * elapsed / FASTEST_LOAD_TIME);
-    if (shownPercent >= 100 && fullAt === null) {
-        fullAt = now;
-    }
+    // burst after everything has loaded
+    if (loaded && burstStart === null) burstStart = now + BURST_DELAY;
 
     // background color, see-through once captured
     ctx.globalAlpha = 1;
@@ -1024,10 +981,9 @@ function frame(now) {
     }
 
     // before or after burst
-    const burstTime = fullAt === null ? -1 : now - fullAt - HOLD_TIME - SHRINK_TIME;
+    const burstTime = burstStart === null ? -1 : now - burstStart;
     if      (capture !== null) drawCapture(now); // first, since a skipped intro never loads or bursts
-    else if (burstTime < 0)    drawLoading(fullAt === null ? null : now - fullAt);
-    else                       drawParticles(burstTime);
+    else if (burstTime >= 0)   drawParticles(burstTime);
 
     // swap points for capture, move text into topbar
     if (capture === null && burstTime > settleTime) {
@@ -1051,29 +1007,8 @@ function frame(now) {
     requestAnimationFrame(frame);
 }
 
-// events for the percent
-function drawLoading(sinceFull) {
-    if (sinceFull === null) {
-        // grow text as counting
-        const p = shownPercent / 100;
-        const grown = 1 - Math.pow(1 - p, GROW_EASE); // fastest at the start, slow to a stop at 100%
-        drawPercent(shownPercent, START_SIZE + (PEAK_SIZE - START_SIZE) * grown, 1);
-
-    } else if (sinceFull < HOLD_TIME) {
-        // hold at 100
-        drawPercent(100, PEAK_SIZE, 1);
-
-    } else {
-        // sharp shrink, speed up
-        const t = (sinceFull - HOLD_TIME) / SHRINK_TIME;
-        drawPercent(100, PEAK_SIZE + (BURST_SIZE - PEAK_SIZE) * Math.pow(t, 3), 1);
-    }
-}
-
 // draw points, trails, camera, etc.
 function drawParticles(burstTime) {
-    const percentAlpha = 1 - clamp(0, 1, burstTime / PERCENT_FADE_OUT);
-    if (percentAlpha > 0) drawPercent(100, BURST_SIZE, percentAlpha);
     updateCamera(burstTime);
     updatePoints(burstTime);
     updateTrails(burstTime);
