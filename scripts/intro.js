@@ -63,6 +63,7 @@ const POINT_GLOW_SIZE = 0.0057;   // radius of glow around points (8px on a 1990
 const POINT_GLOW_STRENGTH = 0.6;  // brightness of point
 const TRAIL_GLOW_SIZE = 0.0043;   // width of the glow around trails, (6px on a 1990x992 window)
 const TRAIL_GLOW_STRENGTH = 0.2;  // brightness of trail
+const GLOW_RESOLUTION = 0.5;      // glow canvas pixels per canvas pixel, lower -> faster but blockier glow
 
 // DOTS
 const DOT_IMAGE_SIZES = [2, 4, 8, 16, 32, 64]; // widths points are drawn at
@@ -206,6 +207,10 @@ function findTextPixels(text, family) {
 const canvas = document.getElementById("scene");
 const ctx = canvas.getContext("2d");
 
+// draw glow at a lower resolution on its own canvas
+const glowCanvas = document.createElement("canvas");
+const glowCtx = glowCanvas.getContext("2d");
+
 let width = 0;
 let height = 0;
 
@@ -223,6 +228,12 @@ function sizeCanvas() {
 
     // scale so drawing can be done using pixels
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+    // only draw glow while animating
+    const glowRatio = capture === null ? ratio * GLOW_RESOLUTION : 0;
+    glowCanvas.width  = Math.round(width  * glowRatio);
+    glowCanvas.height = Math.round(height * glowRatio);
+    glowCtx.setTransform(glowRatio, 0, 0, glowRatio, 0, 0);
 }
 
 // resize canvas size to window size
@@ -265,8 +276,8 @@ for (let i = 0; i < pointCount; i++) {
     });
 }
 
-// draw points onto target
-function drawPoints(target) {
+// draw points and their glow
+function drawPoints(target, glowTarget = target) {
     const screenSize = Math.sqrt(width * height);
     const splitting = introStrength > 0 && LENS_OFFSET > 0;
 
@@ -284,14 +295,14 @@ function drawPoints(target) {
 
     // glow
     if (POINT_GLOW_SIZE > 0 && POINT_GLOW_STRENGTH > 0) {
-        target.globalCompositeOperation = "lighter";
-        target.globalAlpha = POINT_GLOW_STRENGTH;
+        glowTarget.globalCompositeOperation = "lighter";
+        glowTarget.globalAlpha = POINT_GLOW_STRENGTH;
         for (const point of points) {
             if (!point.visible) continue;
 
             const size = POINT_GLOW_SIZE * screenSize * point.depthScale;
             if (together(point)) {
-                drawSprite(target, glowSprite, point.x - size, point.y - size, size * 2, size * 2);
+                drawSprite(glowTarget, glowSprite, point.x - size, point.y - size, size * 2, size * 2);
                 continue;
             }
 
@@ -301,10 +312,10 @@ function drawPoints(target) {
                 const side = 1 - channel; // red 1, green 0, blue -1
                 const x = point.x + split.x * side;
                 const y = point.y + split.y * side;
-                drawSprite(target, glowSprites[channel], x - size, y - size, size * 2, size * 2);
+                drawSprite(glowTarget, glowSprites[channel], x - size, y - size, size * 2, size * 2);
             }
         }
-        target.globalCompositeOperation = "source-over";
+        glowTarget.globalCompositeOperation = "source-over";
     }
 
     // draw the points
@@ -772,17 +783,17 @@ function drawTrails(burstTime) {
     }
 
     // add a glow
-    ctx.globalCompositeOperation = "lighter";
-    ctx.strokeStyle = colors.glow;
+    glowCtx.globalCompositeOperation = "lighter";
+    glowCtx.strokeStyle = colors.glow;
     for (let i = TRAIL_FADE_STEPS - TRAIL_GLOW_STEPS; i < TRAIL_FADE_STEPS; i++) {
         if (i < 0) continue;
         for (let layer = 1; layer <= 3; layer++) {
-            ctx.lineWidth = TRAIL_GLOW_SIZE * Math.sqrt(width * height) * layer / 3;
-            ctx.globalAlpha = TRAIL_GLOW_STRENGTH / 3 * (i + 1) / TRAIL_FADE_STEPS;
-            ctx.stroke(levels[i]);
+            glowCtx.lineWidth = TRAIL_GLOW_SIZE * Math.sqrt(width * height) * layer / 3;
+            glowCtx.globalAlpha = TRAIL_GLOW_STRENGTH / 3 * (i + 1) / TRAIL_FADE_STEPS;
+            glowCtx.stroke(levels[i]);
         }
     }
-    ctx.globalCompositeOperation = "source-over";
+    glowCtx.globalCompositeOperation = "source-over";
 
     // draw the trail lines
     ctx.lineWidth = TRAIL_WIDTH;
@@ -1012,8 +1023,16 @@ function drawParticles(burstTime) {
     updateCamera(burstTime);
     updatePoints(burstTime);
     updateTrails(burstTime);
+
+    glowCtx.clearRect(0, 0, width, height);
     drawTrails(burstTime);
-    drawPoints(ctx);
+    drawPoints(ctx, glowCtx);
+
+    // add glow on top
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = 1;
+    ctx.drawImage(glowCanvas, 0, 0, width, height);
+    ctx.globalCompositeOperation = "source-over";
 }
 
 // replay button in the corner

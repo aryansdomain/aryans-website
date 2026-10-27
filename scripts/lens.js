@@ -52,7 +52,7 @@ function setIntroLens(strength) {
 // ------------------------ RUNNING CODE ------------------------
 
 function lensFrame() {
-    updateBoxLenses();
+    if (introStrength === 0) updateBoxLenses();
     requestAnimationFrame(lensFrame);
 }
 requestAnimationFrame(lensFrame);
