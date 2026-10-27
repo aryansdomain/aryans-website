@@ -138,6 +138,7 @@ function homeFrame(now) {
             focusedBox = null;
             layout = null;
             phase = "idle";
+            if (ringEl.querySelector(".category:hover")) stop(); // mouse already on a box
         }
     }
 
@@ -170,6 +171,16 @@ home.addEventListener("click", function (event) {
         }
         unfocus(); // back to home
     }
+});
+
+// hover over a box to stop rotation, leave hovering to start
+boxes.forEach(function (box) {
+    box.addEventListener("pointerenter", function (event) {
+        if (event.pointerType !== "touch" && phase === "idle") stop();
+    });
+    box.addEventListener("pointerleave", function (event) {
+        if (event.pointerType !== "touch" && phase === "idle") start();
+    });
 });
 
 // came back from a subcategory's page, reset to unfocused
