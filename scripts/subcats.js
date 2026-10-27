@@ -18,7 +18,7 @@ const subcats = {
 };
 
 // boxes with no subcategories open directly
-const boxLinks = { blog: "blog/" };
+const boxLinks = { blog: "blog/", about: "about/" };
 
 // pages subcategories open
 const subcatLinks = {

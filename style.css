@@ -264,36 +264,6 @@ body {
             mask: radial-gradient(ellipse var(--lens-width) var(--lens-height) at 50% 50%, transparent var(--start), #000 calc(var(--start) + 8%));
 }
 
-#name {
-    position: absolute;
-    z-index: 10;
-    padding: 0;
-    background: none;
-    border: none;
-    cursor: pointer;
-}
-/* underline under the name */
-#name::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: var(--underline-top, calc(100% + 6px));
-    height: 1px;
-    background: var(--box-border);
-    -webkit-mask: var(--underline-skips, none);
-            mask: var(--underline-skips, none);
-    clip-path: inset(0 100% 0 0);
-    transition: clip-path 400ms ease;
-}
-#name:focus-visible {
-    outline: none;
-}
-#name:hover::after,
-#name:focus-visible::after {
-    clip-path: inset(0 0 0 0);
-}
-
 /* replay intro button */
 #replay {
     position: fixed;

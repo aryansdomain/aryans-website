@@ -2,7 +2,6 @@
 
 const OPEN_TIME = 700;        // time a clicked subbox's border takes to grow to the edges of the screen
 const OPEN_BORDER_FADE = 0.7; // how far the box has grown when its border starts fading away
-const NAME_FADE = 0.3;        // how far the name has grown when label has faded in
 
 // pages whose title comes there from the corresponding box/subbox
 const titlePages = ["about/", "blog/", "writing/Short Stories/", "writing/Poetry/", "projects/IGCSE_IDE/", "games/Wörtel/", "games/Polybends/"];
@@ -43,7 +42,7 @@ function openSubcat(blob) {
         font: blob.text.style.font,
         fontSize: parseFloat(getComputedStyle(blob.text).fontSize) * scale + "px",
         letterSpacing: blob.text.style.letterSpacing
-    }, blob.link, true);
+    }, blob.link);
 }
 
 // grow a box out to the edges of the screen, then open the page
@@ -57,32 +56,12 @@ function openElement(box, text, link, scale) {
         font: style.font,
         fontSize: parseFloat(style.fontSize) * scale + "px",
         letterSpacing: style.letterSpacing
-    }, link, true);
-}
-
-// grow the name into the title of about page, then open the page
-function openName(link) {
-    const rect = nameButton.getBoundingClientRect();
-
-    // size of letters
-    const measure = document.createElement("canvas").getContext("2d");
-    measure.font = font(TEXT_FONT_FAMILY, 100);
-    const ink = measure.measureText(TEXT);
-    const size = 100 * topbarTextWidth() / (ink.actualBoundingBoxLeft + ink.actualBoundingBoxRight);
-
-    // fade out name as label fades in
-    const scene = document.getElementById("scene");
-    scene.style.zIndex = 1003;
-    openPage({ x: rect.left, y: rect.top, width: rect.width, height: rect.height }, TEXT, {
-        font: font(TEXT_FONT_FAMILY, size),
-        fontSize: size + "px",
-        letterSpacing: "0px"
-    }, link, false, scene);
+    }, link);
 }
 
 // grow a box from where it is on the screen to the edges of the screen, then open link
 let openFrame = null; // the growing box
-function openPage(from, text, labelStyle, link, bordered, fadeOut) {
+function openPage(from, text, labelStyle, link) {
     // where the label goes: the title of the page, or nowhere
     const spot = titlePages.includes(link) ? titleSpot() : null;
     const handoff = spot !== null;
@@ -109,7 +88,6 @@ function openPage(from, text, labelStyle, link, bordered, fadeOut) {
         label.style.left = from.x + from.width  / 2 + "px";
         label.style.top  = from.y + from.height / 2 + "px";
     }
-    if (fadeOut) label.style.opacity = 0;
     openFrame.appendChild(label);
     document.body.appendChild(openFrame);
 
@@ -130,7 +108,7 @@ function openPage(from, text, labelStyle, link, bordered, fadeOut) {
         place(e);
 
         // border fades away as it reaches the edges of the screen
-        const border = bordered ? 1 - smoothstep(Math.max(0, (e - OPEN_BORDER_FADE) / (1 - OPEN_BORDER_FADE))) : 0;
+        const border = 1 - smoothstep(Math.max(0, (e - OPEN_BORDER_FADE) / (1 - OPEN_BORDER_FADE)));
         openFrame.style.borderColor = "color-mix(in srgb, var(--text) " + border * 100 + "%, transparent)";
         if (handoff) {
             // move label from the box to the title of the page
@@ -138,15 +116,8 @@ function openPage(from, text, labelStyle, link, bordered, fadeOut) {
             label.style.top           = lerp(from.y + from.height / 2, spot.y,                e) + "px";
             label.style.fontSize      = lerp(startSize,                spot.size,             e) + "px";
             label.style.letterSpacing = lerp(startSpacing,             spot.spacing,          e) + "px";
-            light.style.opacity = fadeOut ? 0 : 1 - e;
-            bold.style.opacity  = fadeOut ? 1 :     e;
-
-            // fade out label
-            if (fadeOut) {
-                const fade = Math.min(1, e / NAME_FADE);
-                label.style.opacity   =     fade;
-                fadeOut.style.opacity = 1 - fade;
-            }
+            light.style.opacity = 1 - e;
+            bold.style.opacity  =     e;
         }
         else label.style.opacity = Math.max(0, 1 - (now - start) / LABEL_TIME); // text fades away as it grows
 
@@ -155,13 +126,6 @@ function openPage(from, text, labelStyle, link, bordered, fadeOut) {
     }
     requestAnimationFrame(grow);
 }
-
-// name opens the about page 
-const nameLink = document.getElementById("name");
-if (nameLink !== null) nameLink.addEventListener("click", function (event) {
-    event.preventDefault();
-    if (openFrame === null) openName(event.currentTarget.getAttribute("href"));
-});
 
 // came back to this page from a subcategory's page, take the border away
 window.addEventListener("pageshow", function (event) {

@@ -148,7 +148,7 @@ function homeFrame(now) {
 
 // clicks
 home.addEventListener("click", function (event) {
-    if (event.target.closest("#name, #replay")) return;
+    if (event.target.closest("#replay")) return;
     const box = event.target.closest(".category");
 
     if (phase === "idle") {
