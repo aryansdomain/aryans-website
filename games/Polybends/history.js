@@ -83,10 +83,14 @@ document.addEventListener("keydown", function (event) {
 
 // ------------------------ ROUNDNESS ------------------------
 
+// best roundness so far ({ num, den })
+let best = null;
+try { best = JSON.parse(localStorage.getItem(BEST_KEY)); } catch (error) {}
+
 // roundness of shape on canvas
 function updateRoundness() {
     const pieces = Array.from(world.children).map(function (element) { return element.piece; });
-    roundnessText.hidden = pieces.length === 0; // hide if no pieces
+    roundnessBox.hidden = pieces.length === 0; // hide if no pieces
     if (pieces.length === 0) return;
 
     // count each arc, subtract 2 for arcs that are joined
@@ -106,6 +110,18 @@ function updateRoundness() {
     // calculate roundness
     const num = 3 * pieces.length, den = arcs;
 
+    roundnessText.textContent = "Roundness: " + roundnessString(num, den);
+
+    // remember the best
+    if (best === null || num / den > best.num / best.den) {
+        best = { num: num, den: den };
+        try { localStorage.setItem(BEST_KEY, JSON.stringify(best)); } catch (error) {}
+    }
+    bestText.textContent = "Best: " + roundnessString(best.num, best.den);
+}
+
+// roundness as a string displayed
+function roundnessString(num, den) {
     // calculate gcd using euclidean algorithm
     let a = num, b = den;
     while (b !== 0) [a, b] = [b, a % b];
@@ -113,8 +129,7 @@ function updateRoundness() {
 
     const numText = num / divisor;
     const denText = den / divisor === 1 ? "" : den / divisor;
-    const frac = numText + "/" + denText + "π";
-    roundnessText.textContent = "Roundness: " + frac + " ≈ " + (num / (den * Math.PI)).toFixed(3);
+    return numText + "/" + denText + "π ≈ " + (num / (den * Math.PI)).toFixed(3);
 }
 
 // are two sides connected

@@ -30,7 +30,8 @@ const SNAP_TURN = 20;     // how much the degrees of arcs can differ for snappin
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-const STORAGE_KEY = "polybends_intro_seen"; // localStorage key
+const STORAGE_KEY = "polybends_intro_seen";     // localStorage key
+const BEST_KEY    = "polybends_best_roundness"; // localStorage key for best roundness
 
 const sidebar       = document.getElementById("sidebar");
 const shapeList     = document.getElementById("sidebar-shapes");
@@ -46,7 +47,9 @@ const dotsToggle    = document.querySelector(".dots-toggle");
 const shapePreview  = document.getElementById("shape-preview");
 const sidesInput    = document.getElementById("sides");
 const snapInput     = document.getElementById("snap");
-const roundnessText = document.getElementById("roundness");
+const roundnessBox  = document.getElementById("roundness");
+const roundnessText = document.getElementById("roundness-value");
+const bestText      = document.getElementById("roundness-best");
 
 // everything on the canvas
 const world = document.createElementNS(SVG_NS, "g");

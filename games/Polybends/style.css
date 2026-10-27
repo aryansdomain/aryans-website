@@ -35,16 +35,32 @@ body.hide-dots .rotate-dot {
 /* roundness */
 .roundness {
     position: absolute;
-    bottom: 16px;
-    right: calc(clamp(8px, 3vw, 28px) + 0.6 * clamp(15px, 4.2vw, 20px)); /* lined up with the trash can's icon */
+    top: 8px;
+    left: calc(clamp(100px, 16vw, 200px) + (100% - clamp(100px, 16vw, 200px)) / 2); /* middle of the space right of the sidebar */
+    transform: translateX(-50%);
     z-index: 1; /* over canvas */
-    margin: 0;
-    color: var(--muted);
-    font: clamp(14px, 3.6vw, 18px) var(--font-sans);
+    text-align: center;
+    white-space: nowrap;
     pointer-events: none;
 }
 .roundness[hidden] {
     display: none;
+}
+.roundness p {
+    margin: 0;
+}
+.roundness-value {
+    color: var(--text);
+    font: 500 clamp(15px, 4vw, 20px) var(--font-sans);
+}
+.roundness-best {
+    color: var(--muted);
+    font: clamp(12px, 3.2vw, 14px) var(--font-sans);
+}
+@media (max-width: 700px) {
+    .roundness {
+        top: calc(8px + 2.6 * clamp(15px, 4.2vw, 20px) + 8px);
+    }
 }
 
 .game {
