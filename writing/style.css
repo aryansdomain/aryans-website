@@ -1,0 +1,46 @@
+.works {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 680px;
+    margin: 0;
+    padding: 0 var(--text-side);
+    list-style: none;
+}
+.works li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.3em 1.5em;
+    padding: 1em 0;
+}
+.works li:first-child {
+    border-top: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+/* links: draw underline on hover */
+.works a {
+    color: inherit;
+    text-decoration: none;
+    background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
+    transition: background-size 400ms ease;
+}
+.works a:hover,
+.works a:focus-visible {
+    outline: none;
+    background-size: 100% 1px;
+}
+
+/* title */
+.works li > a {
+    color: var(--text);
+    font: 200 clamp(1.15rem, 3.5vw, 1.4rem) var(--font-serif);
+    letter-spacing: 0.03em;
+}
+
+/* award next to title */
+.award {
+    color: var(--box-border);
+    font-size: 0.9em;
+    font-style: italic;
+}

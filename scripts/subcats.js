@@ -22,6 +22,7 @@ const boxLinks = { blog: "blog/" };
 
 // pages subcategories open
 const subcatLinks = {
+    writing: { "Short Stories": "writing/Short Stories/", "Poetry": "writing/Poetry/" },
     projects: { "IGCSE IDE": "projects/IGCSE_IDE/" },
     games: { "Wörtel": "games/Wörtel/", "Polybends": "games/Polybends/" }
 };

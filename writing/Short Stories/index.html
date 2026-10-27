@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aryan Singhal - Short Stories</title>
+    <meta name="description" content="Short stories by Aryan Singhal.">
+    <link rel="stylesheet" href="../../style.css">
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <!-- dots wandering background -->
+    <canvas id="dots" aria-hidden="true"></canvas>
+
+    <header class="topbar">
+        <div class="topbar-leading">
+            <a class="back-button" href="../../" aria-label="Back"></a>
+        </div>
+        <h1 class="topbar-title">Short Stories</h1>
+    </header>
+
+    <main class="text">
+        <ul class="works">
+            <li>
+                <a href="The Blue Flowers.pdf" target="_blank" rel="noopener">The Blue Flowers</a>
+                <span class="award">First Prize, <a href="https://www.paloaltoonline.com/short-story/2025/07/17/short-story-contest-2025-the-blue-flowers/" target="_blank" rel="noopener">Palo Alto Weekly Annual Short Story Contest 2025</a></span>
+            </li>
+            <li>
+                <a href="Red.pdf" target="_blank" rel="noopener">Red</a>
+            </li>
+            <li>
+                <a href="Shattered.pdf" target="_blank" rel="noopener">Shattered</a>
+            </li>
+        </ul>
+    </main>
+
+    <!-- lens blur around screen edges -->
+    <div id="lens" aria-hidden="true">
+        <div></div>
+        <div></div>
+    </div>
+
+    <script src="../../scripts/utils.js"></script>
+    <script src="../../scripts/oval.js"></script>
+    <script src="../../scripts/dots.js"></script>
+    <script src="../../scripts/back.js"></script>
+    <script>
+        showDots(0);
+        placeLensBlur(document.getElementById("lens"));
+    </script>
+</body>
+</html>
