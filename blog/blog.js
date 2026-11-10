@@ -193,7 +193,8 @@ function currentRow() {
 // upright/sideways
 function restingAngle(box) {
     if (family !== null && !family.out && box.parent === family.parent) return 0; // retracting
-    return path.indexOf(box) !== -1 || currentRow().indexOf(box) !== -1 ? 0 : -90;
+    if (path.indexOf(box) !== -1 || currentRow().indexOf(box) !== -1) return 0;
+    return 90 * (box.level - path.length);
 }
 
 

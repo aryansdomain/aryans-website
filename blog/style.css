@@ -22,7 +22,9 @@
 .topbar {
     pointer-events: none;
 }
-.topbar a {
+.topbar a,
+.topbar-title,
+.topbar-date {
     pointer-events: auto;
 }
 @keyframes blog-in {
